@@ -68,7 +68,7 @@ const Home = () => {
     return (
         <div className="min-h-screen bg-gray-50 overflow-x-hidden">
             {/* Hero Section with Background Carousel */}
-            <section className="relative min-h-[500px] sm:min-h-[600px] md:min-h-[700px] overflow-hidden bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800">
+            <section className="relative min-h-[500px] sm:min-h-[600px] md:min-h-[700px] overflow-hidden bg-gray-900">
                 {/* Background Image Carousel */}
                 <div className="absolute inset-0 z-0">
                     <AnimatePresence mode="wait">
