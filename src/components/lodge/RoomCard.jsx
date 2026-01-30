@@ -1,0 +1,145 @@
+import React from 'react';
+import { motion } from 'framer-motion';
+import {
+    Users,
+    Check,
+    Wifi,
+    Droplets,
+    Wind,
+    Tv,
+    GlassWater,
+    Bed,
+    Lock
+} from 'lucide-react';
+
+const RoomCard = ({ room, onSelect, isSelected = false }) => {
+    const {
+        id,
+        type,
+        name,
+        price,
+        maxOccupancy,
+        available,
+        amenities
+    } = room;
+
+    const amenityIcons = {
+        wifi: { icon: Wifi, label: 'WiFi' },
+        hotWater: { icon: Droplets, label: 'Hot Water' },
+        ac: { icon: Wind, label: 'AC' },
+        tv: { icon: Tv, label: 'TV' },
+        minibar: { icon: GlassWater, label: 'Mini Bar' },
+        extraBed: { icon: Bed, label: 'Extra Bed' },
+        locker: { icon: Lock, label: 'Locker' }
+    };
+
+    const getRoomTypeBadge = () => {
+        const colors = {
+            'Non-AC': 'bg-gray-100 text-gray-700',
+            'AC': 'bg-blue-100 text-blue-700',
+            'Family': 'bg-purple-100 text-purple-700',
+            'Dormitory': 'bg-green-100 text-green-700'
+        };
+        return colors[type] || 'bg-gray-100 text-gray-700';
+    };
+
+    const isAvailable = available > 0;
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`
+        relative p-4 rounded-xl border-2 transition-all duration-200
+        ${isSelected
+                    ? 'border-primary-500 bg-primary-50 shadow-lg'
+                    : 'border-gray-200 hover:border-primary-300 bg-white'
+                }
+        ${!isAvailable ? 'opacity-60' : 'cursor-pointer'}
+      `}
+            onClick={() => isAvailable && onSelect && onSelect(room)}
+        >
+            {/* Selected Check */}
+            {isSelected && (
+                <div className="absolute top-3 right-3 w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center">
+                    <Check size={14} className="text-white" />
+                </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                {/* Room Info */}
+                <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getRoomTypeBadge()}`}>
+                            {type}
+                        </span>
+                        {!isAvailable && (
+                            <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700">
+                                Sold Out
+                            </span>
+                        )}
+                    </div>
+
+                    <h4 className="text-lg font-semibold text-gray-900 mb-1">{name}</h4>
+
+                    <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
+                        <span className="flex items-center gap-1">
+                            <Users size={16} />
+                            Max {maxOccupancy} {maxOccupancy === 1 ? 'Guest' : 'Guests'}
+                        </span>
+                        {isAvailable && (
+                            <span className="text-green-600 font-medium">
+                                {available} {available === 1 ? 'room' : 'rooms'} left
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Amenities */}
+                    <div className="flex flex-wrap gap-2">
+                        {amenities.slice(0, 5).map((amenity) => {
+                            const config = amenityIcons[amenity];
+                            if (!config) return null;
+                            const IconComponent = config.icon;
+                            return (
+                                <span
+                                    key={amenity}
+                                    className="flex items-center gap-1 text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded-full"
+                                >
+                                    <IconComponent size={12} />
+                                    {config.label}
+                                </span>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Price Section */}
+                <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 pt-3 sm:pt-0 border-t sm:border-t-0 border-gray-100">
+                    <div className="text-right">
+                        <p className="text-2xl font-bold text-gray-900">₹{price}</p>
+                        <p className="text-xs text-gray-500">per night</p>
+                    </div>
+                    {isAvailable && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onSelect && onSelect(room);
+                            }}
+                            className={`
+                px-4 py-2 rounded-lg text-sm font-medium transition-all
+                ${isSelected
+                                    ? 'bg-primary-500 text-white'
+                                    : 'bg-primary-100 text-primary-700 hover:bg-primary-500 hover:text-white'
+                                }
+              `}
+                        >
+                            {isSelected ? 'Selected' : 'Select Room'}
+                        </button>
+                    )}
+                </div>
+            </div>
+        </motion.div>
+    );
+};
+
+export default RoomCard;
