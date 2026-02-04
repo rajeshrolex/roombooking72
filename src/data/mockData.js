@@ -380,3 +380,61 @@ export const sortLodges = (lodgeList, sortBy) => {
             return sorted.sort((a, b) => b.reviewCount - a.reviewCount);
     }
 };
+export const users = [
+    {
+        id: 1,
+        name: "Super Admin",
+        email: "super@admin.com",
+        password: "password", // In a real app, this would be hashed
+        role: "super_admin",
+        lodgeId: null
+    },
+    {
+        id: 2,
+        name: "Bheema Manager",
+        email: "bheema@admin.com",
+        password: "password",
+        role: "admin",
+        lodgeId: 1
+    },
+    {
+        id: 3,
+        name: "Raghavendra Manager",
+        email: "raghavendra@admin.com",
+        password: "password",
+        role: "admin",
+        lodgeId: 2
+    },
+    {
+        id: 4,
+        name: "Bhakti Manager",
+        email: "bhakti@admin.com",
+        password: "password",
+        role: "admin",
+        lodgeId: 3
+    },
+    {
+        id: 5,
+        name: "Guru Krupa Manager",
+        email: "gurukrupa@admin.com",
+        password: "password",
+        role: "admin",
+        lodgeId: 4
+    },
+    {
+        id: 6,
+        name: "Divine Stay Manager",
+        email: "divine@admin.com",
+        password: "password",
+        role: "admin",
+        lodgeId: 5
+    },
+    {
+        id: 7,
+        name: "Venkateswara Manager",
+        email: "venkateswara@admin.com",
+        password: "password",
+        role: "admin",
+        lodgeId: 6
+    }
+];

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -7,14 +7,18 @@ import {
     ChevronDown,
     MapPin,
     Grid3X3,
-    List
+    List,
+    Loader2
 } from 'lucide-react';
 import SearchBar from '../components/common/SearchBar';
 import LodgeCard from '../components/lodge/LodgeCard';
-import { lodges, sortOptions, sortLodges, filterLodges } from '../data/mockData';
+import { lodgeAPI } from '../services/api';
+import { sortOptions } from '../data/mockData';
 
 const LodgeList = () => {
     const [searchParams] = useSearchParams();
+    const [lodges, setLodges] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [sortBy, setSortBy] = useState('popularity');
     const [showFilters, setShowFilters] = useState(false);
     const [showSortDropdown, setShowSortDropdown] = useState(false);
@@ -26,11 +30,61 @@ const LodgeList = () => {
         amenities: []
     });
 
-    // Apply filters and sorting
+    // Fetch lodges from API
+    useEffect(() => {
+        const fetchLodges = async () => {
+            try {
+                setLoading(true);
+                const data = await lodgeAPI.getAll();
+                setLodges(data);
+            } catch (error) {
+                console.error('Error fetching lodges:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchLodges();
+    }, []);
+
+    // Apply filters and sorting locally
     const filteredLodges = useMemo(() => {
-        let result = filterLodges(filters);
-        return sortLodges(result, sortBy);
-    }, [filters, sortBy]);
+        let result = [...lodges];
+
+        // Filter by distance type
+        if (filters.distanceType) {
+            result = result.filter(lodge => lodge.distanceType === filters.distanceType);
+        }
+
+        // Filter by max price
+        if (filters.priceMax) {
+            result = result.filter(lodge => lodge.priceStarting <= parseInt(filters.priceMax));
+        }
+
+        // Filter by availability
+        if (filters.availability && filters.availability !== 'all') {
+            result = result.filter(lodge => lodge.availability === filters.availability);
+        }
+
+        // Sort
+        switch (sortBy) {
+            case 'priceLow':
+                result.sort((a, b) => a.priceStarting - b.priceStarting);
+                break;
+            case 'priceHigh':
+                result.sort((a, b) => b.priceStarting - a.priceStarting);
+                break;
+            case 'rating':
+                result.sort((a, b) => b.rating - a.rating);
+                break;
+            case 'distance':
+                result.sort((a, b) => parseInt(a.distance) - parseInt(b.distance));
+                break;
+            default:
+                result.sort((a, b) => b.reviewCount - a.reviewCount);
+        }
+
+        return result;
+    }, [lodges, filters, sortBy]);
 
     const handleFilterChange = (key, value) => {
         setFilters(prev => ({ ...prev, [key]: value }));
@@ -49,6 +103,17 @@ const LodgeList = () => {
         v && (Array.isArray(v) ? v.length > 0 : true)
     ).length;
 
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <Loader2 className="w-12 h-12 animate-spin text-primary-500 mx-auto" />
+                    <p className="mt-4 text-gray-600">Loading lodges...</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Header Section */}
@@ -66,8 +131,8 @@ const LodgeList = () => {
                             <button
                                 onClick={() => setShowFilters(!showFilters)}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-xl border-2 transition-all ${showFilters || activeFilterCount > 0
-                                        ? 'border-primary-500 bg-primary-50 text-primary-600'
-                                        : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                                    ? 'border-primary-500 bg-primary-50 text-primary-600'
+                                    : 'border-gray-200 hover:border-gray-300 text-gray-700'
                                     }`}
                             >
                                 <SlidersHorizontal size={18} />
@@ -84,8 +149,8 @@ const LodgeList = () => {
                                 <button
                                     onClick={() => handleFilterChange('distanceType', filters.distanceType === 'walkable' ? '' : 'walkable')}
                                     className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${filters.distanceType === 'walkable'
-                                            ? 'bg-green-100 text-green-700'
-                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                        ? 'bg-green-100 text-green-700'
+                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                         }`}
                                 >
                                     <MapPin size={14} className="inline mr-1" />
@@ -94,8 +159,8 @@ const LodgeList = () => {
                                 <button
                                     onClick={() => handleFilterChange('availability', filters.availability === 'available' ? '' : 'available')}
                                     className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${filters.availability === 'available'
-                                            ? 'bg-primary-100 text-primary-700'
-                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                        ? 'bg-primary-100 text-primary-700'
+                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                         }`}
                                 >
                                     Available Now
@@ -257,11 +322,11 @@ const LodgeList = () => {
                 {/* Lodge Grid */}
                 {filteredLodges.length > 0 ? (
                     <div className={`grid gap-6 ${viewMode === 'grid'
-                            ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
-                            : 'grid-cols-1'
+                        ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+                        : 'grid-cols-1'
                         }`}>
                         {filteredLodges.map((lodge, index) => (
-                            <LodgeCard key={lodge.id} lodge={lodge} index={index} />
+                            <LodgeCard key={lodge._id || lodge.id} lodge={lodge} index={index} />
                         ))}
                     </div>
                 ) : (

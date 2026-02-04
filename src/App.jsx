@@ -1,5 +1,5 @@
 import React from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import Navbar from './components/common/Navbar'
 import Footer from './components/common/Footer'
 import WhatsAppButton from './components/common/WhatsAppButton'
@@ -10,22 +10,45 @@ import LodgeDetail from './pages/LodgeDetail'
 import Booking from './pages/Booking'
 import BookingConfirmation from './pages/BookingConfirmation'
 
+import AdminLayout from './components/admin/AdminLayout'
+import Login from './pages/admin/Login'
+import Dashboard from './pages/admin/Dashboard'
+import ManageLodges from './pages/admin/ManageLodges'
+import BookingsList from './pages/admin/BookingsList'
+import Settings from './pages/admin/Settings'
+import MyLodge from './pages/admin/MyLodge'
+import UserManagement from './pages/admin/UserManagement'
+import ProtectedRoute from './components/auth/ProtectedRoute'
+
 function App() {
   return (
     <div className="App min-h-screen flex flex-col">
       <ScrollToTop />
-      <Navbar />
-      <main className="flex-1">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/lodges" element={<LodgeList />} />
-          <Route path="/lodge/:slug" element={<LodgeDetail />} />
-          <Route path="/booking" element={<Booking />} />
-          <Route path="/booking/confirmation" element={<BookingConfirmation />} />
-        </Routes>
-      </main>
-      <Footer />
-      <WhatsAppButton />
+      {/* Conditionally render Navbar/Footer based on path could be better, but for now we keep them for public pages */}
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<><Navbar /><main className="flex-1"><Home /></main><Footer /><WhatsAppButton /></>} />
+        <Route path="/lodges" element={<><Navbar /><main className="flex-1"><LodgeList /></main><Footer /><WhatsAppButton /></>} />
+        <Route path="/lodge/:slug" element={<><Navbar /><main className="flex-1"><LodgeDetail /></main><Footer /><WhatsAppButton /></>} />
+        <Route path="/booking" element={<><Navbar /><main className="flex-1"><Booking /></main><Footer /><WhatsAppButton /></>} />
+        <Route path="/booking/confirmation" element={<><Navbar /><main className="flex-1"><BookingConfirmation /></main><Footer /><WhatsAppButton /></>} />
+
+        {/* Admin Routes */}
+        <Route path="/admin/login" element={<Login />} />
+
+        <Route path="/admin" element={<ProtectedRoute />}>
+          <Route element={<AdminLayout />}>
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="bookings" element={<BookingsList />} />
+            <Route path="lodges" element={<ManageLodges />} />
+            <Route path="users" element={<UserManagement />} />
+            <Route path="my-lodge" element={<MyLodge />} />
+            <Route path="settings" element={<Settings />} />
+            {/* Redirect root /admin to dashboard */}
+            <Route index element={<Navigate to="dashboard" replace />} />
+          </Route>
+        </Route>
+      </Routes>
     </div>
   )
 }

@@ -1,0 +1,469 @@
+import React, { useState, useEffect } from 'react';
+import { X, Plus, Trash2 } from 'lucide-react';
+
+const LodgeForm = ({ lodge, onSave, onClose, isSubmitting }) => {
+    const [formData, setFormData] = useState({
+        name: '',
+        slug: '',
+        tagline: '',
+        description: '',
+        address: '',
+        phone: '',
+        whatsapp: '',
+        distance: '',
+        distanceType: 'walkable',
+        priceStarting: '',
+        rating: '',
+        reviewCount: '',
+        availability: 'available',
+        featured: false,
+        amenities: [],
+        images: [''],
+        rooms: []
+    });
+
+    useEffect(() => {
+        if (lodge) {
+            setFormData({
+                name: lodge.name || '',
+                slug: lodge.slug || '',
+                tagline: lodge.tagline || '',
+                description: lodge.description || '',
+                address: lodge.address || '',
+                phone: lodge.phone || '',
+                whatsapp: lodge.whatsapp || '',
+                distance: lodge.distance || '',
+                distanceType: lodge.distanceType || 'walkable',
+                priceStarting: lodge.priceStarting || '',
+                rating: lodge.rating || '',
+                reviewCount: lodge.reviewCount || '',
+                availability: lodge.availability || 'available',
+                featured: lodge.featured || false,
+                amenities: lodge.amenities || [],
+                images: lodge.images?.length ? lodge.images : [''],
+                rooms: lodge.rooms || []
+            });
+        }
+    }, [lodge]);
+
+    const handleChange = (e) => {
+        const { name, value, type, checked } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: type === 'checkbox' ? checked : value
+        }));
+    };
+
+    const handleSlugGenerate = () => {
+        const slug = formData.name
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)/g, '');
+        setFormData(prev => ({ ...prev, slug }));
+    };
+
+    const handleAmenityToggle = (amenity) => {
+        setFormData(prev => ({
+            ...prev,
+            amenities: prev.amenities.includes(amenity)
+                ? prev.amenities.filter(a => a !== amenity)
+                : [...prev.amenities, amenity]
+        }));
+    };
+
+    const handleImageChange = (index, value) => {
+        const newImages = [...formData.images];
+        newImages[index] = value;
+        setFormData(prev => ({ ...prev, images: newImages }));
+    };
+
+    const addImage = () => {
+        setFormData(prev => ({ ...prev, images: [...prev.images, ''] }));
+    };
+
+    const removeImage = (index) => {
+        const newImages = formData.images.filter((_, i) => i !== index);
+        setFormData(prev => ({ ...prev, images: newImages.length ? newImages : [''] }));
+    };
+
+    const handleRoomChange = (index, field, value) => {
+        const newRooms = [...formData.rooms];
+        newRooms[index] = { ...newRooms[index], [field]: value };
+        setFormData(prev => ({ ...prev, rooms: newRooms }));
+    };
+
+    const addRoom = () => {
+        setFormData(prev => ({
+            ...prev,
+            rooms: [...prev.rooms, { type: 'Non-AC', name: '', price: '', maxOccupancy: 2, available: 0, amenities: [] }]
+        }));
+    };
+
+    const removeRoom = (index) => {
+        setFormData(prev => ({
+            ...prev,
+            rooms: prev.rooms.filter((_, i) => i !== index)
+        }));
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        const dataToSave = {
+            ...formData,
+            priceStarting: Number(formData.priceStarting),
+            rating: formData.rating ? Number(formData.rating) : 0,
+            reviewCount: formData.reviewCount ? Number(formData.reviewCount) : 0,
+            images: formData.images.filter(img => img.trim()),
+            rooms: formData.rooms.map(room => ({
+                ...room,
+                price: Number(room.price),
+                maxOccupancy: Number(room.maxOccupancy),
+                available: Number(room.available)
+            }))
+        };
+        onSave(dataToSave);
+    };
+
+    const amenityOptions = ['wifi', 'parking', 'hotWater', 'powerBackup', 'ac', 'lift', 'restaurant', 'tv'];
+    const roomTypes = ['Non-AC', 'AC', 'Family', 'Dormitory'];
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+                <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+                    <h2 className="text-xl font-bold text-gray-900">
+                        {lodge ? 'Edit Lodge' : 'Add New Lodge'}
+                    </h2>
+                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
+                        <X size={20} />
+                    </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                    {/* Basic Info */}
+                    <div className="space-y-4">
+                        <h3 className="font-semibold text-gray-800">Basic Information</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Lodge Name *</label>
+                                <input
+                                    type="text"
+                                    name="name"
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Slug *</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        name="slug"
+                                        value={formData.slug}
+                                        onChange={handleChange}
+                                        required
+                                        className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                    />
+                                    <button type="button" onClick={handleSlugGenerate} className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm">
+                                        Generate
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Tagline</label>
+                                <input
+                                    type="text"
+                                    name="tagline"
+                                    value={formData.tagline}
+                                    onChange={handleChange}
+                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                <textarea
+                                    name="description"
+                                    value={formData.description}
+                                    onChange={handleChange}
+                                    rows={3}
+                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Contact & Location */}
+                    <div className="space-y-4">
+                        <h3 className="font-semibold text-gray-800">Contact & Location</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                                <input
+                                    type="text"
+                                    name="address"
+                                    value={formData.address}
+                                    onChange={handleChange}
+                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                                <input
+                                    type="text"
+                                    name="phone"
+                                    value={formData.phone}
+                                    onChange={handleChange}
+                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp</label>
+                                <input
+                                    type="text"
+                                    name="whatsapp"
+                                    value={formData.whatsapp}
+                                    onChange={handleChange}
+                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Distance from Mutt</label>
+                                <input
+                                    type="text"
+                                    name="distance"
+                                    value={formData.distance}
+                                    onChange={handleChange}
+                                    placeholder="e.g., 200m or 1.2km"
+                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Distance Type</label>
+                                <select
+                                    name="distanceType"
+                                    value={formData.distanceType}
+                                    onChange={handleChange}
+                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                >
+                                    <option value="walkable">Walkable</option>
+                                    <option value="auto">Auto Required</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Pricing & Status */}
+                    <div className="space-y-4">
+                        <h3 className="font-semibold text-gray-800">Pricing & Status</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Starting Price (₹) *</label>
+                                <input
+                                    type="number"
+                                    name="priceStarting"
+                                    value={formData.priceStarting}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Availability</label>
+                                <select
+                                    name="availability"
+                                    value={formData.availability}
+                                    onChange={handleChange}
+                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                >
+                                    <option value="available">Available</option>
+                                    <option value="limited">Limited</option>
+                                    <option value="full">Full</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Rating (0-5)</label>
+                                <input
+                                    type="number"
+                                    name="rating"
+                                    value={formData.rating}
+                                    onChange={handleChange}
+                                    min="0"
+                                    max="5"
+                                    step="0.1"
+                                    placeholder="e.g., 4.5"
+                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Review Count</label>
+                                <input
+                                    type="number"
+                                    name="reviewCount"
+                                    value={formData.reviewCount}
+                                    onChange={handleChange}
+                                    min="0"
+                                    placeholder="e.g., 89"
+                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </div>
+                            <div className="flex items-center pt-6">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        name="featured"
+                                        checked={formData.featured}
+                                        onChange={handleChange}
+                                        className="w-4 h-4 rounded border-gray-300"
+                                    />
+                                    <span className="text-sm font-medium text-gray-700">Featured Lodge</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Amenities */}
+                    <div className="space-y-4">
+                        <h3 className="font-semibold text-gray-800">Amenities</h3>
+                        <div className="flex flex-wrap gap-2">
+                            {amenityOptions.map(amenity => (
+                                <button
+                                    key={amenity}
+                                    type="button"
+                                    onClick={() => handleAmenityToggle(amenity)}
+                                    className={`px-3 py-1.5 rounded-full text-sm capitalize transition-colors ${formData.amenities.includes(amenity)
+                                        ? 'bg-indigo-600 text-white'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                        }`}
+                                >
+                                    {amenity}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Images */}
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                            <h3 className="font-semibold text-gray-800">Images</h3>
+                            <button type="button" onClick={addImage} className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-700">
+                                <Plus size={16} /> Add Image
+                            </button>
+                        </div>
+                        <div className="space-y-2">
+                            {formData.images.map((img, index) => (
+                                <div key={index} className="flex gap-2">
+                                    <input
+                                        type="url"
+                                        value={img}
+                                        onChange={(e) => handleImageChange(index, e.target.value)}
+                                        placeholder="Image URL"
+                                        className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => removeImage(index)}
+                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Rooms */}
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                            <h3 className="font-semibold text-gray-800">Rooms</h3>
+                            <button type="button" onClick={addRoom} className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-700">
+                                <Plus size={16} /> Add Room
+                            </button>
+                        </div>
+                        <div className="space-y-4">
+                            {formData.rooms.map((room, index) => (
+                                <div key={index} className="p-4 border rounded-lg bg-gray-50">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <span className="font-medium text-gray-700">Room {index + 1}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => removeRoom(index)}
+                                            className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">Type</label>
+                                            <select
+                                                value={room.type}
+                                                onChange={(e) => handleRoomChange(index, 'type', e.target.value)}
+                                                className="w-full px-3 py-1.5 border rounded text-sm"
+                                            >
+                                                {roomTypes.map(t => (
+                                                    <option key={t} value={t}>{t}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">Name</label>
+                                            <input
+                                                type="text"
+                                                value={room.name}
+                                                onChange={(e) => handleRoomChange(index, 'name', e.target.value)}
+                                                className="w-full px-3 py-1.5 border rounded text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">Price (₹)</label>
+                                            <input
+                                                type="number"
+                                                value={room.price}
+                                                onChange={(e) => handleRoomChange(index, 'price', e.target.value)}
+                                                className="w-full px-3 py-1.5 border rounded text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">Available</label>
+                                            <input
+                                                type="number"
+                                                value={room.available}
+                                                onChange={(e) => handleRoomChange(index, 'available', e.target.value)}
+                                                className="w-full px-3 py-1.5 border rounded text-sm"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                            {formData.rooms.length === 0 && (
+                                <p className="text-sm text-gray-500 text-center py-4">No rooms added yet. Click "Add Room" to add room types.</p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Submit */}
+                    <div className="flex justify-end gap-3 pt-4 border-t">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-6 py-2 border rounded-lg hover:bg-gray-50"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={isSubmitting}
+                            className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                        >
+                            {isSubmitting ? 'Saving...' : (lodge ? 'Update Lodge' : 'Create Lodge')}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+export default LodgeForm;

@@ -45,6 +45,10 @@ const RoomCard = ({ room, onSelect, isSelected = false }) => {
 
     const isAvailable = available > 0;
 
+    // Badge Logic
+    const isBestValue = name.toLowerCase().includes('standard') || name.toLowerCase().includes('budget');
+    const isPopular = name.toLowerCase().includes('ac') && !name.toLowerCase().includes('non');
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -52,13 +56,24 @@ const RoomCard = ({ room, onSelect, isSelected = false }) => {
             className={`
         relative p-4 rounded-xl border-2 transition-all duration-200
         ${isSelected
-                    ? 'border-primary-500 bg-primary-50 shadow-lg'
-                    : 'border-gray-200 hover:border-primary-300 bg-white'
+                    ? 'border-primary-500 bg-primary-50 shadow-lg ring-1 ring-primary-500'
+                    : 'border-gray-200 hover:border-primary-300 bg-white hover:shadow-md'
                 }
         ${!isAvailable ? 'opacity-60' : 'cursor-pointer'}
       `}
             onClick={() => isAvailable && onSelect && onSelect(room)}
         >
+            {/* Badges */}
+            {isBestValue && !isSelected && (
+                <div className="absolute -top-3 left-4 bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm">
+                    BEST VALUE
+                </div>
+            )}
+            {isPopular && !isSelected && !isBestValue && (
+                <div className="absolute -top-3 left-4 bg-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm">
+                    MOST POPULAR
+                </div>
+            )}
             {/* Selected Check */}
             {isSelected && (
                 <div className="absolute top-3 right-3 w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center">

@@ -85,6 +85,14 @@ const LodgeCard = ({ lodge, index = 0 }) => {
 
                 {/* Gradient Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                {/* Trusted Badge - Show for high rated lodges */}
+                {rating >= 4.5 && (
+                    <div className="absolute bottom-3 left-3 flex items-center gap-1 bg-yellow-400 text-yellow-900 px-2 py-1 rounded-md text-xs font-bold shadow-sm transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
+                        <Star size={10} className="fill-current" />
+                        Trusted by Devotees
+                    </div>
+                )}
             </div>
 
             {/* Content Section */}

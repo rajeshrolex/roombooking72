@@ -23,7 +23,8 @@ const Booking = () => {
         bookingData,
         setCustomerDetails,
         setPaymentMethod,
-        generateBookingId,
+        submitBooking,
+        isSubmitting,
         calculateTotalNights,
         calculateTotalPrice
     } = useBooking();
@@ -90,9 +91,11 @@ const Booking = () => {
         setPaymentMethod(method);
     };
 
-    const handleConfirmBooking = () => {
-        const bookingId = generateBookingId();
-        navigate('/booking/confirmation');
+    const handleConfirmBooking = async () => {
+        const result = await submitBooking();
+        if (result) {
+            navigate('/booking/confirmation');
+        }
     };
 
     return (
@@ -261,8 +264,8 @@ const Booking = () => {
                                     {/* Pay at Lodge */}
                                     <label
                                         className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${bookingData.paymentMethod === 'payAtLodge'
-                                                ? 'border-primary-500 bg-primary-50'
-                                                : 'border-gray-200 hover:border-gray-300'
+                                            ? 'border-primary-500 bg-primary-50'
+                                            : 'border-gray-200 hover:border-gray-300'
                                             }`}
                                     >
                                         <input
@@ -286,8 +289,8 @@ const Booking = () => {
                                     {/* UPI */}
                                     <label
                                         className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${bookingData.paymentMethod === 'upi'
-                                                ? 'border-primary-500 bg-primary-50'
-                                                : 'border-gray-200 hover:border-gray-300'
+                                            ? 'border-primary-500 bg-primary-50'
+                                            : 'border-gray-200 hover:border-gray-300'
                                             }`}
                                     >
                                         <input

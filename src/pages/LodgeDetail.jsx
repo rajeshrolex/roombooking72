@@ -12,28 +12,61 @@ import {
     Navigation,
     Clock,
     Users,
+    Loader2,
     Calendar
 } from 'lucide-react';
+import { format, addDays } from 'date-fns';
 import PhotoGallery from '../components/lodge/PhotoGallery';
 import RoomCard from '../components/lodge/RoomCard';
 import { AmenityList } from '../components/lodge/AmenityBadge';
-import { getLodgeBySlug } from '../data/mockData';
+import ReviewsSection from '../components/lodge/ReviewsSection';
+import { lodgeAPI } from '../services/api';
 import { useBooking } from '../context/BookingContext';
 
 const LodgeDetail = () => {
     const { slug } = useParams();
     const navigate = useNavigate();
-    const { selectLodge, selectRoom, bookingData } = useBooking();
+    const { selectLodge, selectRoom, setDates, setGuests, bookingData } = useBooking();
 
-    const lodge = getLodgeBySlug(slug);
+    const [lodge, setLodge] = useState(null);
+    const [loading, setLoading] = useState(true);
     const [selectedRoom, setSelectedRoom] = useState(null);
     const [isFavorite, setIsFavorite] = useState(false);
 
+    // Date picker state
+    const today = new Date();
+    const tomorrow = addDays(today, 1);
+    const [checkIn, setCheckIn] = useState(bookingData.checkIn ? format(new Date(bookingData.checkIn), 'yyyy-MM-dd') : format(today, 'yyyy-MM-dd'));
+    const [checkOut, setCheckOut] = useState(bookingData.checkOut ? format(new Date(bookingData.checkOut), 'yyyy-MM-dd') : format(tomorrow, 'yyyy-MM-dd'));
+    const [guests, setGuestsValue] = useState(bookingData.guests || 1);
+
+    // Fetch lodge from API
     useEffect(() => {
-        if (lodge) {
-            selectLodge(lodge);
-        }
-    }, [lodge]);
+        const fetchLodge = async () => {
+            try {
+                setLoading(true);
+                const data = await lodgeAPI.getBySlug(slug);
+                setLodge(data);
+                selectLodge(data);
+            } catch (error) {
+                console.error('Error fetching lodge:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchLodge();
+    }, [slug]);
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <Loader2 className="w-12 h-12 animate-spin text-primary-500 mx-auto" />
+                    <p className="mt-4 text-gray-600">Loading lodge details...</p>
+                </div>
+            </div>
+        );
+    }
 
     if (!lodge) {
         return (
@@ -56,9 +89,16 @@ const LodgeDetail = () => {
 
     const handleBookNow = () => {
         if (selectedRoom) {
+            // Set dates and guests in booking context
+            setDates(new Date(checkIn), new Date(checkOut));
+            setGuests(guests);
             navigate('/booking');
         }
     };
+
+    // Calculate total nights and price
+    const totalNights = Math.max(1, Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24)));
+    const totalPrice = selectedRoom ? selectedRoom.price * totalNights : 0;
 
     const getGoogleMapsUrl = () => {
         return `https://www.google.com/maps/search/?api=1&query=Sri+Raghavendra+Swamy+Mutt+Mantralayam`;
@@ -129,8 +169,8 @@ const LodgeDetail = () => {
                                             {lodge.distance} from Mutt
                                         </span>
                                         <span className={`badge-distance ${lodge.distanceType === 'walkable'
-                                                ? 'bg-green-100 text-green-700'
-                                                : 'bg-blue-100 text-blue-700'
+                                            ? 'bg-green-100 text-green-700'
+                                            : 'bg-blue-100 text-blue-700'
                                             }`}>
                                             {lodge.distanceType === 'walkable' ? 'Walking Distance' : 'Auto Distance'}
                                         </span>
@@ -140,8 +180,8 @@ const LodgeDetail = () => {
                                     <button
                                         onClick={() => setIsFavorite(!isFavorite)}
                                         className={`p-3 rounded-xl border-2 transition-all ${isFavorite
-                                                ? 'border-red-500 text-red-500 bg-red-50'
-                                                : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                                            ? 'border-red-500 text-red-500 bg-red-50'
+                                            : 'border-gray-200 text-gray-600 hover:border-gray-300'
                                             }`}
                                     >
                                         <Heart size={20} fill={isFavorite ? 'currentColor' : 'none'} />
@@ -178,12 +218,12 @@ const LodgeDetail = () => {
                                 Select a Room
                             </h2>
                             <div className="space-y-4">
-                                {lodge.rooms.map((room) => (
+                                {lodge.rooms.map((room, index) => (
                                     <RoomCard
-                                        key={room.id}
+                                        key={room._id || index}
                                         room={room}
                                         onSelect={handleRoomSelect}
-                                        isSelected={selectedRoom?.id === room.id}
+                                        isSelected={selectedRoom?.name === room.name}
                                     />
                                 ))}
                             </div>
@@ -200,6 +240,15 @@ const LodgeDetail = () => {
                                 Amenities
                             </h2>
                             <AmenityList amenities={lodge.amenities} />
+                        </motion.div>
+
+                        {/* Reviews */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.35 }}
+                        >
+                            <ReviewsSection rating={lodge.rating} reviewCount={lodge.reviewCount} />
                         </motion.div>
 
                         {/* Location */}
@@ -258,13 +307,68 @@ const LodgeDetail = () => {
                                     </div>
                                 </div>
 
+                                {/* Date Picker */}
+                                <div className="mb-6 pb-6 border-b border-gray-100">
+                                    <div className="grid grid-cols-2 gap-3 mb-3">
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-500 mb-1">Check-in</label>
+                                            <div className="relative">
+                                                <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                                <input
+                                                    type="date"
+                                                    value={checkIn}
+                                                    min={format(today, 'yyyy-MM-dd')}
+                                                    onChange={(e) => {
+                                                        setCheckIn(e.target.value);
+                                                        if (new Date(e.target.value) >= new Date(checkOut)) {
+                                                            setCheckOut(format(addDays(new Date(e.target.value), 1), 'yyyy-MM-dd'));
+                                                        }
+                                                    }}
+                                                    className="w-full pl-9 pr-2 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-500 mb-1">Check-out</label>
+                                            <div className="relative">
+                                                <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                                <input
+                                                    type="date"
+                                                    value={checkOut}
+                                                    min={format(addDays(new Date(checkIn), 1), 'yyyy-MM-dd')}
+                                                    onChange={(e) => setCheckOut(e.target.value)}
+                                                    className="w-full pl-9 pr-2 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-500 mb-1">Guests</label>
+                                        <div className="relative">
+                                            <Users size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                            <select
+                                                value={guests}
+                                                onChange={(e) => setGuestsValue(Number(e.target.value))}
+                                                className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none"
+                                            >
+                                                {[1, 2, 3, 4, 5, 6].map(num => (
+                                                    <option key={num} value={num}>{num} {num === 1 ? 'Guest' : 'Guests'}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-2 text-center">
+                                        {totalNights} {totalNights === 1 ? 'night' : 'nights'}
+                                    </p>
+                                </div>
+
                                 {/* Selected Room */}
                                 {selectedRoom && (
                                     <div className="mb-6 pb-6 border-b border-gray-100">
                                         <p className="text-sm font-medium text-gray-700 mb-2">Selected Room</p>
                                         <div className="p-3 bg-primary-50 rounded-xl">
                                             <p className="font-semibold text-gray-900">{selectedRoom.name}</p>
-                                            <p className="text-primary-600 font-bold">₹{selectedRoom.price}/night</p>
+                                            <p className="text-primary-600 font-bold">₹{selectedRoom.price}/night × {totalNights} = ₹{totalPrice}</p>
                                         </div>
                                     </div>
                                 )}
@@ -274,11 +378,11 @@ const LodgeDetail = () => {
                                     onClick={handleBookNow}
                                     disabled={!selectedRoom}
                                     className={`w-full py-4 rounded-xl text-lg font-semibold transition-all ${selectedRoom
-                                            ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02]'
-                                            : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                        ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02] animate-pulse hover:animate-none'
+                                        : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                                         }`}
                                 >
-                                    {selectedRoom ? 'Book Now' : 'Select a Room to Book'}
+                                    {selectedRoom ? `Book Now • ₹${totalPrice}` : 'Select a Room to Book'}
                                 </button>
 
                                 {/* Quick Actions */}
@@ -323,19 +427,19 @@ const LodgeDetail = () => {
                 <div className="flex items-center justify-between">
                     <div>
                         <p className="text-sm text-gray-500">
-                            {selectedRoom ? selectedRoom.name : 'Starting from'}
+                            {selectedRoom ? `${selectedRoom.name} × ${totalNights} night${totalNights > 1 ? 's' : ''}` : 'Starting from'}
                         </p>
                         <p className="text-xl font-bold text-gray-900">
-                            ₹{selectedRoom ? selectedRoom.price : lodge.priceStarting}
-                            <span className="text-sm font-normal text-gray-500">/night</span>
+                            ₹{selectedRoom ? totalPrice : lodge.priceStarting}
+                            {!selectedRoom && <span className="text-sm font-normal text-gray-500">/night</span>}
                         </p>
                     </div>
                     <button
                         onClick={handleBookNow}
                         disabled={!selectedRoom}
                         className={`px-8 py-3 rounded-xl font-semibold transition-all ${selectedRoom
-                                ? 'bg-primary-500 text-white'
-                                : 'bg-gray-200 text-gray-500'
+                            ? 'bg-primary-500 text-white'
+                            : 'bg-gray-200 text-gray-500'
                             }`}
                     >
                         {selectedRoom ? 'Book Now' : 'Select Room'}
