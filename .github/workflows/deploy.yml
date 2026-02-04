@@ -25,6 +25,7 @@ jobs:
 
       - name: Build frontend
         run: npm run build
+        # Note: .htaccess from public/ is automatically copied to dist/ during build
 
       # Deploy to Hostinger via FTP
       - name: Deploy to Hostinger
