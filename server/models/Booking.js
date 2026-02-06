@@ -1,120 +1,127 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const mongoose = require('mongoose');
 
-const Booking = sequelize.define('Booking', {
-    id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true
-    },
+const bookingSchema = new mongoose.Schema({
     bookingId: {
-        type: DataTypes.STRING(50),
-        allowNull: false,
+        type: String,
+        required: true,
         unique: true
     },
     lodgeId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: 'lodges',
-            key: 'id'
-        }
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Lodge',
+        required: true
     },
-    lodgeName: {
-        type: DataTypes.STRING(255)
-    },
+    lodgeName: String,
     // Flattened room info
-    roomType: {
-        type: DataTypes.STRING(50)
-    },
-    roomName: {
-        type: DataTypes.STRING(255)
-    },
-    roomPrice: {
-        type: DataTypes.INTEGER
-    },
+    roomType: String,
+    roomName: String,
+    roomPrice: Number,
+
     checkIn: {
-        type: DataTypes.DATEONLY,
-        allowNull: false
+        type: Date,
+        required: true
     },
     checkOut: {
-        type: DataTypes.DATEONLY,
-        allowNull: false
+        type: Date,
+        required: true
     },
     guests: {
-        type: DataTypes.INTEGER,
-        defaultValue: 1
+        type: Number,
+        default: 1
     },
     rooms: {
-        type: DataTypes.INTEGER,
-        defaultValue: 1
+        type: Number,
+        default: 1
     },
-    // Flattened customer details
+    // Customer details
     customerName: {
-        type: DataTypes.STRING(255),
-        allowNull: false
+        type: String,
+        required: true
     },
     customerMobile: {
-        type: DataTypes.STRING(20),
-        allowNull: false
+        type: String,
+        required: true
     },
-    customerEmail: {
-        type: DataTypes.STRING(255)
-    },
-    idType: {
-        type: DataTypes.STRING(50)
-    },
-    idNumber: {
-        type: DataTypes.STRING(100)
-    },
+    customerEmail: String,
+    idType: String,
+    idNumber: String,
+
     paymentMethod: {
-        type: DataTypes.ENUM('payAtLodge', 'online'),
-        defaultValue: 'payAtLodge'
+        type: String,
+        enum: ['payAtLodge', 'online'],
+        default: 'payAtLodge'
     },
     totalAmount: {
-        type: DataTypes.INTEGER,
-        allowNull: false
+        type: Number,
+        required: true
     },
     status: {
-        type: DataTypes.ENUM('pending', 'confirmed', 'checked-in', 'checked-out', 'cancelled'),
-        defaultValue: 'pending'
+        type: String,
+        enum: ['pending', 'confirmed', 'checked-in', 'checked-out', 'cancelled'],
+        default: 'pending'
     }
 }, {
-    tableName: 'bookings',
-    timestamps: true
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
 });
 
-// Virtual getter to maintain API compatibility with nested structure
-Booking.prototype.toJSON = function () {
-    const values = { ...this.get() };
+bookingSchema.virtual('id').get(function () {
+    return this._id.toHexString();
+});
 
-    // Reconstruct nested room object for API compatibility
-    values.room = {
-        type: values.roomType,
-        name: values.roomName,
-        price: values.roomPrice
-    };
+// Virtual populate for lodge
+bookingSchema.virtual('lodge', {
+    ref: 'Lodge',
+    localField: 'lodgeId',
+    foreignField: '_id',
+    justOne: true
+});
 
-    // Reconstruct nested customerDetails object for API compatibility
-    values.customerDetails = {
-        name: values.customerName,
-        mobile: values.customerMobile,
-        email: values.customerEmail,
-        idType: values.idType,
-        idNumber: values.idNumber
-    };
 
-    // Clean up flat fields from output
-    delete values.roomType;
-    delete values.roomName;
-    delete values.roomPrice;
-    delete values.customerName;
-    delete values.customerMobile;
-    delete values.customerEmail;
-    delete values.idType;
-    delete values.idNumber;
+// Maintain API compatibility for nested structures
+// Notes: Mongoose toJSON transform can handle this, or we can just return flattened structure
+// and let the frontend adapt, BUT the plan was to minimize frontend breakage.
+// The SQL model had a custom toJSON. Let's replicate that logic in a transform.
 
-    return values;
-};
+bookingSchema.set('toJSON', {
+    virtuals: true,
+    transform: function (doc, ret) {
+        ret.id = ret._id;
+        // ret._id = ret._id; // Keep _id for frontend compatibility
+        delete ret.__v;
+
+        // Construct nested objects
+        ret.room = {
+            type: ret.roomType,
+            name: ret.roomName,
+            price: ret.roomPrice
+        };
+
+        ret.customerDetails = {
+            name: ret.customerName,
+            mobile: ret.customerMobile,
+            email: ret.customerEmail,
+            idType: ret.idType,
+            idNumber: ret.idNumber
+        };
+
+        // Remove flat fields from output (optional, keeping them might be safer if used elsewhere)
+        // keeping them as top level AND nested is fine, or deleting them. 
+        // SQL model deleted them. Let's delete them to match exactly.
+        delete ret.roomType;
+        delete ret.roomName;
+        delete ret.roomPrice;
+        delete ret.customerName;
+        delete ret.customerMobile;
+        delete ret.customerEmail;
+        delete ret.idType;
+        delete ret.idNumber;
+
+        return ret;
+    }
+});
+
+const Booking = mongoose.model('Booking', bookingSchema);
 
 module.exports = Booking;

@@ -1,10 +1,23 @@
+const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 dotenv.config();
 
-const { sequelize, Lodge, Room, Booking, User } = require('./models');
+const { Lodge, Room, Booking, User } = require('./models');
 
-// Lodges data
-const lodges = [
+// Connect to MongoDB
+const connectDB = async () => {
+    try {
+        await mongoose.connect(process.env.MONGO_URI);
+        console.log('MongoDB Connected for seeding');
+        await seed();
+    } catch (err) {
+        console.error('MongoDB Connection Error:', err);
+        process.exit(1);
+    }
+};
+
+// Lodges data (same as before)
+const lodgesData = [
     {
         name: "Bhakti Nivas",
         slug: "bhakti-nivas",
@@ -106,20 +119,20 @@ const lodges = [
 
 async function seed() {
     try {
-        console.log('Connecting to MySQL...');
-        await sequelize.authenticate();
-        console.log('MySQL Connected for seeding');
-
-        // Sync all models (this creates tables)
-        console.log('Creating tables...');
-        await sequelize.sync({ force: true }); // WARNING: This drops existing tables
-        console.log('Tables created successfully');
+        console.log('Clearing existing data...');
+        await Promise.all([
+            Lodge.deleteMany({}),
+            Room.deleteMany({}),
+            Booking.deleteMany({}),
+            User.deleteMany({})
+        ]);
+        console.log('Data cleared.');
 
         // Seed lodges and rooms
         console.log('Seeding lodges and rooms...');
         const seededLodges = [];
 
-        for (const lodgeData of lodges) {
+        for (const lodgeData of lodgesData) {
             const { rooms, ...lodgeFields } = lodgeData;
 
             // Create lodge
@@ -128,12 +141,11 @@ async function seed() {
 
             // Create rooms for this lodge
             if (rooms && rooms.length > 0) {
-                for (const roomData of rooms) {
-                    await Room.create({
-                        ...roomData,
-                        lodgeId: lodge.id
-                    });
-                }
+                const roomsWithLodgeId = rooms.map(room => ({
+                    ...room,
+                    lodgeId: lodge._id
+                }));
+                await Room.insertMany(roomsWithLodgeId);
             }
         }
         console.log('Lodges seeded successfully');
@@ -153,32 +165,32 @@ async function seed() {
                 email: "bhakti@admin.com",
                 password: "password",
                 role: "admin",
-                lodgeId: seededLodges[0].id
+                lodgeId: seededLodges[0]._id
             },
             {
                 name: "Guru Krupa Manager",
                 email: "gurukrupa@admin.com",
                 password: "password",
                 role: "admin",
-                lodgeId: seededLodges[1].id
+                lodgeId: seededLodges[1]._id
             },
             {
                 name: "Divine Stay Manager",
                 email: "divine@admin.com",
                 password: "password",
                 role: "admin",
-                lodgeId: seededLodges[2].id
+                lodgeId: seededLodges[2]._id
             },
             {
                 name: "Venkateswara Manager",
                 email: "venkateswara@admin.com",
                 password: "password",
                 role: "admin",
-                lodgeId: seededLodges[3].id
+                lodgeId: seededLodges[3]._id
             }
         ];
 
-        await User.bulkCreate(users);
+        await User.insertMany(users);
         console.log('Users seeded successfully');
 
         // Create sample bookings
@@ -186,12 +198,12 @@ async function seed() {
         const sampleBookings = [];
         for (let i = 0; i < 10; i++) {
             const lodge = seededLodges[i % seededLodges.length];
-            const rooms = await Room.findAll({ where: { lodgeId: lodge.id } });
+            const rooms = await Room.find({ lodgeId: lodge._id });
             const room = rooms[0];
 
             sampleBookings.push({
                 bookingId: `MLY${20240001 + i}`,
-                lodgeId: lodge.id,
+                lodgeId: lodge._id,
                 lodgeName: lodge.name,
                 roomType: room.type,
                 roomName: room.name,
@@ -210,7 +222,7 @@ async function seed() {
                 status: i % 3 === 0 ? 'confirmed' : i % 3 === 1 ? 'pending' : 'checked-in'
             });
         }
-        await Booking.bulkCreate(sampleBookings);
+        await Booking.insertMany(sampleBookings);
         console.log('Bookings seeded successfully');
 
         console.log('\n✅ All data seeded successfully!');
@@ -225,4 +237,5 @@ async function seed() {
     }
 }
 
-seed();
+connectDB();
+

@@ -1,44 +1,52 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const mongoose = require('mongoose');
 
-const User = sequelize.define('User', {
-    id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true
-    },
+const userSchema = new mongoose.Schema({
     name: {
-        type: DataTypes.STRING(255),
-        allowNull: false
+        type: String,
+        required: true
     },
     email: {
-        type: DataTypes.STRING(255),
-        allowNull: false,
+        type: String,
+        required: true,
         unique: true
     },
     password: {
-        type: DataTypes.STRING(255),
-        allowNull: false
+        type: String,
+        required: true
     },
     phone: {
-        type: DataTypes.STRING(20),
-        defaultValue: ''
+        type: String,
+        default: ''
     },
     role: {
-        type: DataTypes.ENUM('super_admin', 'admin'),
-        defaultValue: 'admin'
+        type: String,
+        enum: ['super_admin', 'admin'],
+        default: 'admin'
     },
     lodgeId: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-        references: {
-            model: 'lodges',
-            key: 'id'
-        }
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Lodge',
+        default: null
     }
 }, {
-    tableName: 'users',
-    timestamps: true
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
 });
+
+userSchema.virtual('id').get(function () {
+    return this._id.toHexString();
+});
+
+// Virtual populate for lodge
+userSchema.virtual('lodge', {
+    ref: 'Lodge',
+    localField: 'lodgeId',
+    foreignField: '_id',
+    justOne: true
+});
+
+
+const User = mongoose.model('User', userSchema);
 
 module.exports = User;

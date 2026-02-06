@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const { Booking, Lodge } = require('../models');
-const { Op } = require('sequelize');
 
 // Generate unique booking ID
 const generateBookingId = () => {
@@ -12,24 +11,23 @@ const generateBookingId = () => {
 router.get('/', async (req, res) => {
     try {
         const { lodgeId, status } = req.query;
-        let where = {};
+        let query = {};
 
-        if (lodgeId && !isNaN(parseInt(lodgeId))) {
-            where.lodgeId = parseInt(lodgeId);
+        // Mongoose query building
+        // Mongoose query building
+        if (lodgeId && lodgeId !== 'undefined' && lodgeId !== 'null') {
+            // Handle case where lodgeId might be passed as "null" string or actual id
+            query.lodgeId = lodgeId;
         }
+
         if (status && status !== 'all') {
-            where.status = status;
+            query.status = status;
         }
 
-        const bookings = await Booking.findAll({
-            where,
-            include: [{
-                model: Lodge,
-                as: 'lodge',
-                attributes: ['id', 'name', 'slug']
-            }],
-            order: [['createdAt', 'DESC']]
-        });
+        const bookings = await Booking.find(query)
+            .populate('lodge', 'name slug')
+            .sort({ createdAt: -1 });
+
         res.json(bookings);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -39,14 +37,9 @@ router.get('/', async (req, res) => {
 // Get single booking
 router.get('/:id', async (req, res) => {
     try {
-        const booking = await Booking.findOne({
-            where: { bookingId: req.params.id },
-            include: [{
-                model: Lodge,
-                as: 'lodge',
-                attributes: ['id', 'name', 'slug', 'address', 'phone']
-            }]
-        });
+        const booking = await Booking.findOne({ bookingId: req.params.id })
+            .populate('lodge', 'name slug address phone');
+
         if (!booking) {
             return res.status(404).json({ message: 'Booking not found' });
         }
@@ -62,7 +55,7 @@ router.post('/', async (req, res) => {
         const bookingId = generateBookingId();
 
         // Get lodge details
-        const lodge = await Lodge.findByPk(req.body.lodgeId);
+        const lodge = await Lodge.findById(req.body.lodgeId);
         if (!lodge) {
             return res.status(404).json({ message: 'Lodge not found' });
         }
@@ -94,28 +87,29 @@ router.post('/', async (req, res) => {
     }
 });
 
-// Update booking status (accepts both MySQL id and bookingId)
+// Update booking status
 router.put('/:id', async (req, res) => {
     try {
         let booking;
         const id = req.params.id;
 
-        // Try to find by MySQL ID first (numeric)
-        if (!isNaN(parseInt(id))) {
-            [, booking] = await Booking.update(
-                { status: req.body.status },
-                { where: { id: parseInt(id) }, returning: true }
-            );
-            booking = await Booking.findByPk(parseInt(id));
-        }
+        // Try to find by _id (if valid ObjectId) or bookingId
+        // Mongoose findOneAndUpdate with $or or check validity
 
-        // If not found, try by bookingId string
-        if (!booking) {
-            await Booking.update(
+        // Strategy: First try by bookingId as it's our custom ID and unique
+        booking = await Booking.findOneAndUpdate(
+            { bookingId: id },
+            { status: req.body.status },
+            { new: true }
+        );
+
+        // If not found, and id looks like an ObjectId, try by _id
+        if (!booking && id.match(/^[0-9a-fA-F]{24}$/)) {
+            booking = await Booking.findByIdAndUpdate(
+                id,
                 { status: req.body.status },
-                { where: { bookingId: id } }
+                { new: true }
             );
-            booking = await Booking.findOne({ where: { bookingId: id } });
         }
 
         if (!booking) {

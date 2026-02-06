@@ -1,86 +1,73 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const mongoose = require('mongoose');
 
-const Lodge = sequelize.define('Lodge', {
-    id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true
-    },
+const lodgeSchema = new mongoose.Schema({
     name: {
-        type: DataTypes.STRING(255),
-        allowNull: false
+        type: String,
+        required: true
     },
     slug: {
-        type: DataTypes.STRING(255),
-        allowNull: false,
+        type: String,
+        required: true,
         unique: true
     },
-    tagline: {
-        type: DataTypes.STRING(500)
-    },
+    tagline: String,
     images: {
-        type: DataTypes.TEXT,
-        get() {
-            const value = this.getDataValue('images');
-            return value ? JSON.parse(value) : [];
-        },
-        set(value) {
-            this.setDataValue('images', JSON.stringify(value || []));
-        }
+        type: [String],
+        default: []
     },
-    distance: {
-        type: DataTypes.STRING(50)
-    },
+    distance: String,
     distanceType: {
-        type: DataTypes.ENUM('walkable', 'auto'),
-        defaultValue: 'walkable'
+        type: String,
+        enum: ['walkable', 'auto'],
+        default: 'walkable'
     },
     rating: {
-        type: DataTypes.DECIMAL(2, 1),
-        defaultValue: 0
+        type: Number,
+        default: 0
     },
     reviewCount: {
-        type: DataTypes.INTEGER,
-        defaultValue: 0
+        type: Number,
+        default: 0
     },
     priceStarting: {
-        type: DataTypes.INTEGER,
-        allowNull: false
+        type: Number,
+        required: true
     },
     availability: {
-        type: DataTypes.ENUM('available', 'limited', 'full'),
-        defaultValue: 'available'
+        type: String,
+        enum: ['available', 'limited', 'full'],
+        default: 'available'
     },
     featured: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false
+        type: Boolean,
+        default: false
     },
     amenities: {
-        type: DataTypes.TEXT,
-        get() {
-            const value = this.getDataValue('amenities');
-            return value ? JSON.parse(value) : [];
-        },
-        set(value) {
-            this.setDataValue('amenities', JSON.stringify(value || []));
-        }
+        type: [String],
+        default: []
     },
-    address: {
-        type: DataTypes.STRING(500)
-    },
-    phone: {
-        type: DataTypes.STRING(20)
-    },
-    whatsapp: {
-        type: DataTypes.STRING(20)
-    },
-    description: {
-        type: DataTypes.TEXT
-    }
+    address: String,
+    phone: String,
+    whatsapp: String,
+    description: String
 }, {
-    tableName: 'lodges',
-    timestamps: true
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
 });
+
+// Virtual for id
+lodgeSchema.virtual('id').get(function () {
+    return this._id.toHexString();
+});
+
+// Associations (virtual populate)
+lodgeSchema.virtual('rooms', {
+    ref: 'Room',
+    localField: '_id',
+    foreignField: 'lodgeId'
+});
+
+const Lodge = mongoose.model('Lodge', lodgeSchema);
 
 module.exports = Lodge;

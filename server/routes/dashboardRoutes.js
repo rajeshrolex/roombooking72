@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const { Booking, Lodge, Room } = require('../models');
-const { Op, fn, col } = require('sequelize');
 
 // Get dashboard statistics
 router.get('/stats', async (req, res) => {
@@ -9,53 +8,50 @@ router.get('/stats', async (req, res) => {
         const { lodgeId } = req.query;
 
         // Build filter for bookings
-        let bookingWhere = {};
-        let lodgeWhere = {};
+        let bookingQuery = {};
+        let lodgeQuery = {};
+        let roomQuery = {};
 
-        // Only apply lodgeId filter if it's a valid number
-        if (lodgeId && !isNaN(parseInt(lodgeId))) {
-            bookingWhere.lodgeId = parseInt(lodgeId);
-            lodgeWhere.id = parseInt(lodgeId);
+        if (lodgeId) {
+            // Assuming lodgeId is passed as string (ObjectId or not)
+            // If it's a valid ObjectId, we use it.
+            bookingQuery.lodgeId = lodgeId;
+            lodgeQuery._id = lodgeId;
+            roomQuery.lodgeId = lodgeId;
         }
 
         // Get counts
-        const totalLodges = await Lodge.count({ where: lodgeWhere });
-        const totalBookings = await Booking.count({ where: bookingWhere });
+        const totalLodges = await Lodge.countDocuments(lodgeQuery);
+        const totalBookings = await Booking.countDocuments(bookingQuery);
 
         // Get revenue
-        const revenueResult = await Booking.sum('totalAmount', { where: bookingWhere });
-        const totalRevenue = revenueResult || 0;
+        const revenueResult = await Booking.aggregate([
+            { $match: bookingQuery },
+            { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+        ]);
+        const totalRevenue = revenueResult.length > 0 ? revenueResult[0].total : 0;
 
         // Get total rooms
-        let roomWhere = {};
-        if (lodgeId && !isNaN(parseInt(lodgeId))) {
-            roomWhere.lodgeId = parseInt(lodgeId);
-        }
-        const rooms = await Room.findAll({ where: roomWhere });
+        // We can use aggregation to sum availability or just fetch and reduce
+        // Room model has `available` count per room type
+        const rooms = await Room.find(roomQuery);
         const totalRooms = rooms.reduce((acc, room) => acc + (room.available || 0), 0);
 
         // Calculate occupancy rate (simplified)
-        const confirmedBookings = await Booking.count({
-            where: {
-                ...bookingWhere,
-                status: { [Op.in]: ['confirmed', 'checked-in'] }
-            }
+        const confirmedBookings = await Booking.countDocuments({
+            ...bookingQuery,
+            status: { $in: ['confirmed', 'checked-in'] }
         });
+
         const occupancyRate = totalRooms > 0
             ? Math.round((confirmedBookings / totalRooms) * 100)
             : 0;
 
         // Get recent bookings
-        const recentBookings = await Booking.findAll({
-            where: bookingWhere,
-            include: [{
-                model: Lodge,
-                as: 'lodge',
-                attributes: ['name']
-            }],
-            order: [['createdAt', 'DESC']],
-            limit: 5
-        });
+        const recentBookings = await Booking.find(bookingQuery)
+            .populate('lodge', 'name')
+            .sort({ createdAt: -1 })
+            .limit(5);
 
         res.json({
             totalLodges,

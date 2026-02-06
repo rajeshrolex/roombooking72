@@ -1,19 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const { User, Lodge } = require('../models');
-const { Op } = require('sequelize');
 
 // Get all users
 router.get('/', async (req, res) => {
     try {
-        const users = await User.findAll({
-            attributes: { exclude: ['password'] },
-            include: [{
-                model: Lodge,
-                as: 'lodge',
-                attributes: ['id', 'name']
-            }]
-        });
+        const users = await User.find({}, '-password').populate('lodge', 'name');
         res.json({ success: true, users });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
@@ -23,9 +15,7 @@ router.get('/', async (req, res) => {
 // Get user profile
 router.get('/profile/:userId', async (req, res) => {
     try {
-        const user = await User.findByPk(req.params.userId, {
-            attributes: { exclude: ['password'] }
-        });
+        const user = await User.findById(req.params.userId).select('-password');
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
@@ -41,7 +31,7 @@ router.post('/', async (req, res) => {
         const { name, email, password, role, lodgeId } = req.body;
 
         // Check if email already exists
-        const existingUser = await User.findOne({ where: { email } });
+        const existingUser = await User.findOne({ email });
         if (existingUser) {
             return res.status(400).json({ success: false, message: 'Email already in use' });
         }
@@ -54,7 +44,7 @@ router.post('/', async (req, res) => {
             lodgeId: lodgeId || null
         });
 
-        const userObj = user.toJSON();
+        const userObj = user.toObject(); // or .toJSON()
         delete userObj.password;
 
         res.status(201).json({ success: true, user: userObj });
@@ -71,24 +61,19 @@ router.put('/profile/:userId', async (req, res) => {
         // Check if email already exists for another user
         if (email) {
             const existingUser = await User.findOne({
-                where: {
-                    email,
-                    id: { [Op.ne]: req.params.userId }
-                }
+                email,
+                _id: { $ne: req.params.userId }
             });
             if (existingUser) {
                 return res.status(400).json({ success: false, message: 'Email already in use' });
             }
         }
 
-        await User.update(
+        const user = await User.findByIdAndUpdate(
+            req.params.userId,
             { name, email, phone },
-            { where: { id: req.params.userId } }
-        );
-
-        const user = await User.findByPk(req.params.userId, {
-            attributes: { exclude: ['password'] }
-        });
+            { new: true }
+        ).select('-password');
 
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
@@ -108,10 +93,8 @@ router.put('/:userId', async (req, res) => {
         // Check if email already exists for another user
         if (email) {
             const existingUser = await User.findOne({
-                where: {
-                    email,
-                    id: { [Op.ne]: req.params.userId }
-                }
+                email,
+                _id: { $ne: req.params.userId }
             });
             if (existingUser) {
                 return res.status(400).json({ success: false, message: 'Email already in use' });
@@ -125,11 +108,11 @@ router.put('/:userId', async (req, res) => {
             updateData.password = password; // In production, hash this!
         }
 
-        await User.update(updateData, { where: { id: req.params.userId } });
-
-        const user = await User.findByPk(req.params.userId, {
-            attributes: { exclude: ['password'] }
-        });
+        const user = await User.findByIdAndUpdate(
+            req.params.userId,
+            updateData,
+            { new: true }
+        ).select('-password');
 
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
@@ -146,7 +129,9 @@ router.put('/password/:userId', async (req, res) => {
     try {
         const { currentPassword, newPassword } = req.body;
 
-        const user = await User.findByPk(req.params.userId);
+        // Need password here, so findById defaults to returning selected fields if not excluded in schema, 
+        // but it's safe to just fetch it and compare.
+        const user = await User.findById(req.params.userId);
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
@@ -157,7 +142,8 @@ router.put('/password/:userId', async (req, res) => {
         }
 
         // Update password (in production, hash the password)
-        await User.update({ password: newPassword }, { where: { id: req.params.userId } });
+        user.password = newPassword;
+        await user.save();
 
         res.json({ success: true, message: 'Password updated successfully' });
     } catch (err) {
@@ -168,9 +154,9 @@ router.put('/password/:userId', async (req, res) => {
 // Delete user
 router.delete('/:userId', async (req, res) => {
     try {
-        const deleted = await User.destroy({ where: { id: req.params.userId } });
+        const deletedUser = await User.findByIdAndDelete(req.params.userId);
 
-        if (!deleted) {
+        if (!deletedUser) {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 

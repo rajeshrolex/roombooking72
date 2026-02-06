@@ -1,53 +1,46 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const mongoose = require('mongoose');
 
-const Room = sequelize.define('Room', {
-    id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true
-    },
+const roomSchema = new mongoose.Schema({
     lodgeId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: 'lodges',
-            key: 'id'
-        }
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Lodge',
+        required: true
     },
     type: {
-        type: DataTypes.ENUM('Non-AC', 'AC', 'Family', 'Dormitory'),
-        allowNull: false
+        type: String,
+        enum: ['Non-AC', 'AC', 'Family', 'Dormitory'],
+        required: true
     },
     name: {
-        type: DataTypes.STRING(255),
-        allowNull: false
+        type: String,
+        required: true
     },
     price: {
-        type: DataTypes.INTEGER,
-        allowNull: false
+        type: Number,
+        required: true
     },
     maxOccupancy: {
-        type: DataTypes.INTEGER,
-        defaultValue: 2
+        type: Number,
+        default: 2
     },
     available: {
-        type: DataTypes.INTEGER,
-        defaultValue: 0
+        type: Number,
+        default: 0
     },
     amenities: {
-        type: DataTypes.TEXT,
-        get() {
-            const value = this.getDataValue('amenities');
-            return value ? JSON.parse(value) : [];
-        },
-        set(value) {
-            this.setDataValue('amenities', JSON.stringify(value || []));
-        }
+        type: [String],
+        default: []
     }
 }, {
-    tableName: 'rooms',
-    timestamps: false
+    timestamps: false,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
 });
+
+roomSchema.virtual('id').get(function () {
+    return this._id.toHexString();
+});
+
+const Room = mongoose.model('Room', roomSchema);
 
 module.exports = Room;
