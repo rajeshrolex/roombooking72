@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useBooking } from '../context/BookingContext';
+import { useRazorpay } from '../hooks/useRazorpay';
 import { idTypes } from '../data/mockData';
 
 const Booking = () => {
@@ -28,6 +29,8 @@ const Booking = () => {
         calculateTotalNights,
         calculateTotalPrice
     } = useBooking();
+
+    const { initiatePayment, loading: paymentLoading } = useRazorpay();
 
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState({
@@ -92,9 +95,40 @@ const Booking = () => {
     };
 
     const handleConfirmBooking = async () => {
-        const result = await submitBooking();
-        if (result) {
-            navigate('/booking/confirmation');
+        if (bookingData.paymentMethod === 'upi') {
+            // Initiate Razorpay Payment
+            await initiatePayment(
+                {
+                    totalAmount: totalPrice,
+                    lodgeName: selectedLodge.name,
+                    guestName: bookingData.customerDetails.name,
+                    email: bookingData.customerDetails.email,
+                    phone: bookingData.customerDetails.mobile,
+                    checkIn: checkIn,
+                    checkOut: checkOut
+                },
+                async (paymentSuccess) => {
+                    // On Payment Success, submit booking with payment details
+                    const result = await submitBooking({
+                        paymentId: paymentSuccess.paymentId,
+                        orderId: paymentSuccess.orderId,
+                        status: 'paid'
+                    });
+                    if (result) {
+                        navigate('/booking/confirmation');
+                    }
+                },
+                (error) => {
+                    console.error('Payment failed:', error);
+                    alert('Payment failed. Please try again or select Pay at Lodge.');
+                }
+            );
+        } else {
+            // Pay at Lodge
+            const result = await submitBooking();
+            if (result) {
+                navigate('/booking/confirmation');
+            }
         }
     };
 
@@ -328,9 +362,10 @@ const Booking = () => {
 
                                 <button
                                     onClick={handleConfirmBooking}
-                                    className="w-full btn-primary mt-8 py-4 text-lg"
+                                    disabled={isSubmitting || paymentLoading}
+                                    className={`w-full btn-primary mt-8 py-4 text-lg ${isSubmitting || paymentLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
                                 >
-                                    Confirm Booking • ₹{totalPrice}
+                                    {isSubmitting || paymentLoading ? 'Processing...' : `Confirm Booking • ₹${totalPrice}`}
                                 </button>
                             </motion.div>
                         )}

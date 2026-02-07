@@ -117,5 +117,43 @@ export const userAPI = {
     }
 };
 
-export default { lodgeAPI, bookingAPI, dashboardAPI, authAPI, userAPI };
+// Payment API (Razorpay)
+export const paymentAPI = {
+    createOrder: async (bookingData) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/payment/create-order`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(bookingData)
+            });
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `Server error: ${response.status}`);
+            }
+            return response.json();
+        } catch (error) {
+            console.error('Payment create order error:', error);
+            throw error;
+        }
+    },
 
+    verifyPayment: async (paymentData) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/payment/verify`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(paymentData)
+            });
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `Server error: ${response.status}`);
+            }
+            return response.json();
+        } catch (error) {
+            console.error('Payment verification error:', error);
+            throw error;
+        }
+    }
+};
+
+export default { lodgeAPI, bookingAPI, dashboardAPI, authAPI, userAPI, paymentAPI };

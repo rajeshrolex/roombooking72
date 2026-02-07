@@ -82,7 +82,7 @@ export const BookingProvider = ({ children }) => {
     };
 
     // Submit booking to API
-    const submitBooking = async () => {
+    const submitBooking = async (paymentDetails = null) => {
         if (isSubmitting) return null;
 
         setIsSubmitting(true);
@@ -102,7 +102,8 @@ export const BookingProvider = ({ children }) => {
                 rooms: bookingData.rooms,
                 customerDetails: bookingData.customerDetails,
                 paymentMethod: bookingData.paymentMethod,
-                totalAmount: calculateTotalPrice() || bookingData.selectedRoom?.price * totalNights
+                totalAmount: calculateTotalPrice() || bookingData.selectedRoom?.price * totalNights,
+                paymentDetails: paymentDetails // Add payment details if available
             };
 
             const result = await bookingAPI.create(bookingPayload);

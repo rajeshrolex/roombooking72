@@ -1,10 +1,18 @@
 const express = require('express');
 const router = express.Router();
-const { Booking, Lodge } = require('../models');
+const { Booking, Lodge, User } = require('../models');
+const { sendBookingEmails } = require('../utils/emailService');
 
 // Generate unique booking ID
 const generateBookingId = () => {
     return 'MLY' + Date.now().toString().slice(-8) + Math.random().toString(36).slice(-4).toUpperCase();
+};
+
+// Format date for email
+const formatDate = (date) => {
+    if (!date) return 'N/A';
+    const d = new Date(date);
+    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
 // Get all bookings (with optional lodge filter for admins)
@@ -60,6 +68,13 @@ router.post('/', async (req, res) => {
             return res.status(404).json({ message: 'Lodge not found' });
         }
 
+        // Get lodge admin email if exists
+        let lodgeAdminEmail = null;
+        const lodgeAdmin = await User.findOne({ lodgeId: req.body.lodgeId, role: 'admin' });
+        if (lodgeAdmin) {
+            lodgeAdminEmail = lodgeAdmin.email;
+        }
+
         const booking = await Booking.create({
             bookingId,
             lodgeId: req.body.lodgeId,
@@ -78,10 +93,34 @@ router.post('/', async (req, res) => {
             idNumber: req.body.customerDetails?.idNumber,
             paymentMethod: req.body.paymentMethod,
             totalAmount: req.body.totalAmount,
+            paymentId: req.body.paymentDetails?.paymentId || null,
+            paymentStatus: req.body.paymentDetails?.status || 'pending',
             status: 'confirmed'
         });
 
-        res.status(201).json(booking);
+        // Send email notifications (async, don't wait)
+        if (req.body.customerDetails?.email) {
+            sendBookingEmails({
+                bookingId,
+                lodgeName: lodge.name,
+                roomName: req.body.room?.name || 'Room',
+                guestName: req.body.customerDetails?.name,
+                email: req.body.customerDetails?.email,
+                phone: req.body.customerDetails?.mobile,
+                checkIn: formatDate(req.body.checkIn),
+                checkOut: formatDate(req.body.checkOut),
+                guests: req.body.guests || 1,
+                amount: req.body.totalAmount,
+                paymentId: req.body.paymentDetails?.paymentId,
+                lodgeAdminEmail
+            }).then(result => {
+                console.log('Email notifications sent:', result);
+            }).catch(err => {
+                console.error('Failed to send email notifications:', err);
+            });
+        }
+
+        res.status(201).json({ ...booking.toObject(), bookingId });
     } catch (err) {
         res.status(400).json({ message: err.message });
     }
