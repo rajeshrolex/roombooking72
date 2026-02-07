@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { bookingAPI } from '../../services/api';
-import { Search, Filter, Eye, Loader2, X, Check, Clock, LogIn, LogOut, MoreVertical } from 'lucide-react';
+import { Search, Filter, Eye, Loader2, X, Check, Clock, LogIn, LogOut, Banknote, CreditCard } from 'lucide-react';
 import { format } from 'date-fns';
 
 const BookingsList = () => {
@@ -12,6 +12,7 @@ const BookingsList = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedBooking, setSelectedBooking] = useState(null);
     const [updatingStatus, setUpdatingStatus] = useState(null);
+    const [updatingPayment, setUpdatingPayment] = useState(null);
 
     useEffect(() => {
         fetchBookings();
@@ -53,6 +54,29 @@ const BookingsList = () => {
             alert('Failed to update status. Please try again.');
         } finally {
             setUpdatingStatus(null);
+        }
+    };
+
+    const handlePaymentUpdate = async (booking, paymentStatus) => {
+        const id = booking._id || booking.bookingId;
+        setUpdatingPayment(id);
+        try {
+            await bookingAPI.updatePaymentStatus(id, {
+                paymentStatus,
+                paymentMethod: paymentStatus === 'paid' ? 'payAtLodge' : booking.paymentMethod
+            });
+            // Update local state
+            setBookings(bookings.map(b =>
+                b._id === booking._id ? { ...b, paymentStatus } : b
+            ));
+            if (selectedBooking?._id === booking._id) {
+                setSelectedBooking({ ...selectedBooking, paymentStatus });
+            }
+        } catch (error) {
+            console.error('Error updating payment status:', error);
+            alert('Failed to update payment. Please try again.');
+        } finally {
+            setUpdatingPayment(null);
         }
     };
 
@@ -148,6 +172,7 @@ const BookingsList = () => {
                                 <th className="px-6 py-4">Lodge</th>
                                 <th className="px-6 py-4">Dates</th>
                                 <th className="px-6 py-4">Amount</th>
+                                <th className="px-6 py-4">Payment</th>
                                 <th className="px-6 py-4">Status</th>
                                 <th className="px-6 py-4 text-right">Actions</th>
                             </tr>
@@ -176,6 +201,14 @@ const BookingsList = () => {
                                             ₹{booking.totalAmount?.toLocaleString() || 0}
                                         </td>
                                         <td className="px-6 py-4">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${booking.paymentStatus === 'paid'
+                                                ? 'bg-green-100 text-green-700'
+                                                : 'bg-yellow-100 text-yellow-700'
+                                                }`}>
+                                                {booking.paymentStatus || 'Pending'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
                                             <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${getStatusColor(booking.status)}`}>
                                                 {booking.status}
                                             </span>
@@ -190,6 +223,21 @@ const BookingsList = () => {
                                                 >
                                                     <Eye size={18} />
                                                 </button>
+                                                {/* Mark as Paid - Quick Action */}
+                                                {booking.paymentStatus !== 'paid' && (
+                                                    <button
+                                                        onClick={() => handlePaymentUpdate(booking, 'paid')}
+                                                        disabled={updatingPayment === booking._id}
+                                                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+                                                        title="Mark as Paid (Cash Received)"
+                                                    >
+                                                        {updatingPayment === booking._id ? (
+                                                            <Loader2 size={18} className="animate-spin" />
+                                                        ) : (
+                                                            <Banknote size={18} />
+                                                        )}
+                                                    </button>
+                                                )}
                                                 {/* Quick Actions */}
                                                 {getNextActions(booking.status).map((action) => (
                                                     <button
@@ -279,8 +327,8 @@ const BookingsList = () => {
                                         <p className="font-medium">{selectedBooking.lodgeName || selectedBooking.lodge?.name}</p>
                                     </div>
                                     <div>
-                                        <p className="text-gray-500">Room Type</p>
-                                        <p className="font-medium">{selectedBooking.roomType || 'Standard'}</p>
+                                        <p className="text-gray-500">Room</p>
+                                        <p className="font-medium">{selectedBooking.roomName || selectedBooking.roomType || 'Standard'}</p>
                                     </div>
                                     <div>
                                         <p className="text-gray-500">Check In</p>
@@ -297,14 +345,79 @@ const BookingsList = () => {
                                 </div>
                             </div>
 
-                            {/* Payment */}
-                            <div className="bg-indigo-50 p-4 rounded-lg">
-                                <div className="flex justify-between items-center">
-                                    <span className="font-semibold">Total Amount</span>
-                                    <span className="text-2xl font-bold text-indigo-600">
+                            {/* ID Proof Details */}
+                            {(selectedBooking.idType || selectedBooking.idNumber || selectedBooking.customerDetails?.idType) && (
+                                <div className="bg-amber-50 p-4 rounded-lg">
+                                    <h4 className="font-semibold mb-3 text-amber-800">ID Proof Details</h4>
+                                    <div className="grid grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <p className="text-amber-700">ID Type</p>
+                                            <p className="font-medium text-amber-900">{selectedBooking.idType || selectedBooking.customerDetails?.idType || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-amber-700">ID Number</p>
+                                            <p className="font-medium font-mono text-amber-900">{selectedBooking.idNumber || selectedBooking.customerDetails?.idNumber || 'N/A'}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Payment Details */}
+                            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                                <h4 className="font-semibold mb-3 text-green-800">Payment Information</h4>
+                                <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+                                    <div>
+                                        <p className="text-green-700">Payment Method</p>
+                                        <p className="font-medium text-green-900 capitalize">{selectedBooking.paymentMethod || 'Pay at Lodge'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-green-700">Payment Status</p>
+                                        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${selectedBooking.paymentStatus === 'paid'
+                                            ? 'bg-green-200 text-green-800'
+                                            : 'bg-yellow-200 text-yellow-800'
+                                            }`}>
+                                            {selectedBooking.paymentStatus || 'Pending'}
+                                        </span>
+                                    </div>
+                                    {selectedBooking.paymentId && (
+                                        <div className="col-span-2">
+                                            <p className="text-green-700">Payment ID</p>
+                                            <p className="font-mono text-xs text-green-900 bg-green-100 p-2 rounded mt-1">
+                                                {selectedBooking.paymentId}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex justify-between items-center pt-3 border-t border-green-200">
+                                    <span className="font-semibold text-green-800">Total Amount</span>
+                                    <span className="text-2xl font-bold text-green-700">
                                         ₹{selectedBooking.totalAmount?.toLocaleString() || 0}
                                     </span>
                                 </div>
+
+                                {/* Payment Action Button */}
+                                {selectedBooking.paymentStatus !== 'paid' && (
+                                    <button
+                                        onClick={() => handlePaymentUpdate(selectedBooking, 'paid')}
+                                        disabled={updatingPayment === selectedBooking._id}
+                                        className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+                                    >
+                                        {updatingPayment === selectedBooking._id ? (
+                                            <Loader2 size={18} className="animate-spin" />
+                                        ) : (
+                                            <Banknote size={18} />
+                                        )}
+                                        Mark as Paid (Cash Received)
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Booking Timestamps */}
+                            <div className="flex gap-4 text-xs text-gray-400">
+                                <span>Created: {selectedBooking.createdAt ? format(new Date(selectedBooking.createdAt), 'MMM dd, yyyy hh:mm a') : 'N/A'}</span>
+                                {selectedBooking.updatedAt && selectedBooking.updatedAt !== selectedBooking.createdAt && (
+                                    <span>Updated: {format(new Date(selectedBooking.updatedAt), 'MMM dd, yyyy hh:mm a')}</span>
+                                )}
                             </div>
 
                             {/* Special Requests */}
@@ -325,8 +438,8 @@ const BookingsList = () => {
                                         onClick={() => handleStatusUpdate(selectedBooking._id, action.status)}
                                         disabled={updatingStatus === selectedBooking._id}
                                         className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${action.status === 'cancelled'
-                                                ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                                                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                                            ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                                            : 'bg-indigo-600 text-white hover:bg-indigo-700'
                                             } disabled:opacity-50`}
                                     >
                                         {updatingStatus === selectedBooking._id ? (

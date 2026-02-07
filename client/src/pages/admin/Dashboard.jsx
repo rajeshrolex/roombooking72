@@ -101,8 +101,8 @@ const Dashboard = () => {
                                         </div>
                                     </div>
                                     <span className={`text-xs font-medium px-2 py-1 rounded ${booking.status === 'confirmed' ? 'bg-green-50 text-green-600' :
-                                            booking.status === 'pending' ? 'bg-yellow-50 text-yellow-600' :
-                                                'bg-blue-50 text-blue-600'
+                                        booking.status === 'pending' ? 'bg-yellow-50 text-yellow-600' :
+                                            'bg-blue-50 text-blue-600'
                                         }`}>
                                         {booking.status}
                                     </span>
@@ -117,13 +117,17 @@ const Dashboard = () => {
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                     <h3 className="font-bold text-gray-900 mb-4">Quick Stats</h3>
                     <div className="space-y-4">
-                        <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                            <span className="text-gray-600">Total Lodges</span>
-                            <span className="font-bold text-gray-900">{stats?.totalLodges || 0}</span>
+                        <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                            <span className="text-green-700">Today's Revenue</span>
+                            <span className="font-bold text-green-700">₹{(stats?.todayRevenue || 0).toLocaleString()}</span>
                         </div>
-                        <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                            <span className="text-gray-600">Total Rooms</span>
-                            <span className="font-bold text-gray-900">{stats?.totalRooms || 0}</span>
+                        <div className="flex justify-between items-center p-3 bg-yellow-50 rounded-lg">
+                            <span className="text-yellow-700">Pending Bookings</span>
+                            <span className="font-bold text-yellow-700">{stats?.pendingBookings || 0}</span>
+                        </div>
+                        <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                            <span className="text-blue-700">Today's Check-ins</span>
+                            <span className="font-bold text-blue-700">{stats?.todayCheckIns || 0}</span>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                             <span className="text-gray-600">Avg. Booking Value</span>
@@ -131,6 +135,18 @@ const Dashboard = () => {
                                 ₹{stats?.totalBookings > 0 ? Math.round(stats.totalRevenue / stats.totalBookings).toLocaleString() : 0}
                             </span>
                         </div>
+                        {user?.role === 'super_admin' && (
+                            <>
+                                <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
+                                    <span className="text-purple-700">Total Lodges</span>
+                                    <span className="font-bold text-purple-700">{stats?.totalLodges || 0}</span>
+                                </div>
+                                <div className="flex justify-between items-center p-3 bg-indigo-50 rounded-lg">
+                                    <span className="text-indigo-700">Total Rooms</span>
+                                    <span className="font-bold text-indigo-700">{stats?.totalRooms || 0}</span>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>

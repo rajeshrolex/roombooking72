@@ -51,6 +51,15 @@ const bookingSchema = new mongoose.Schema({
         enum: ['payAtLodge', 'online'],
         default: 'payAtLodge'
     },
+    paymentId: {
+        type: String,
+        default: null
+    },
+    paymentStatus: {
+        type: String,
+        enum: ['pending', 'paid', 'failed', 'refunded'],
+        default: 'pending'
+    },
     totalAmount: {
         type: Number,
         required: true

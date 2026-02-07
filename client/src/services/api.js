@@ -67,6 +67,15 @@ export const bookingAPI = {
             body: JSON.stringify({ status })
         });
         return response.json();
+    },
+
+    updatePaymentStatus: async (bookingId, paymentData) => {
+        const response = await fetch(`${API_BASE_URL}/bookings/${bookingId}/payment`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(paymentData)
+        });
+        return response.json();
     }
 };
 

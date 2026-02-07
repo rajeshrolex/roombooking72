@@ -160,4 +160,53 @@ router.put('/:id', async (req, res) => {
     }
 });
 
+// Update payment status (mark as paid/received cash)
+router.put('/:id/payment', async (req, res) => {
+    try {
+        const id = req.params.id;
+        const { paymentStatus, paymentMethod, paymentId } = req.body;
+
+        let updateData = { paymentStatus };
+
+        // If marking as paid and no payment ID, generate one for cash
+        if (paymentStatus === 'paid' && !paymentId) {
+            updateData.paymentId = 'CASH_' + Date.now();
+        } else if (paymentId) {
+            updateData.paymentId = paymentId;
+        }
+
+        if (paymentMethod) {
+            updateData.paymentMethod = paymentMethod;
+        }
+
+        let booking;
+
+        // Try to find by bookingId first
+        booking = await Booking.findOneAndUpdate(
+            { bookingId: id },
+            updateData,
+            { new: true }
+        );
+
+        // If not found, try by _id
+        if (!booking && id.match(/^[0-9a-fA-F]{24}$/)) {
+            booking = await Booking.findByIdAndUpdate(
+                id,
+                updateData,
+                { new: true }
+            );
+        }
+
+        if (!booking) {
+            return res.status(404).json({ message: 'Booking not found' });
+        }
+
+        console.log('Payment status updated:', booking.bookingId, paymentStatus);
+        res.json(booking);
+    } catch (err) {
+        console.error('Error updating payment status:', err);
+        res.status(400).json({ message: err.message });
+    }
+});
+
 module.exports = router;

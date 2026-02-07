@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const { Booking, Lodge, Room } = require('../models');
 
 // Get dashboard statistics
@@ -12,28 +13,56 @@ router.get('/stats', async (req, res) => {
         let lodgeQuery = {};
         let roomQuery = {};
 
-        if (lodgeId) {
-            // Assuming lodgeId is passed as string (ObjectId or not)
-            // If it's a valid ObjectId, we use it.
-            bookingQuery.lodgeId = lodgeId;
-            lodgeQuery._id = lodgeId;
-            roomQuery.lodgeId = lodgeId;
+        if (lodgeId && lodgeId !== 'null' && lodgeId !== 'undefined') {
+            // Convert string to ObjectId if valid
+            const objectId = mongoose.Types.ObjectId.isValid(lodgeId)
+                ? new mongoose.Types.ObjectId(lodgeId)
+                : lodgeId;
+            bookingQuery.lodgeId = objectId;
+            lodgeQuery._id = objectId;
+            roomQuery.lodgeId = objectId;
         }
 
         // Get counts
         const totalLodges = await Lodge.countDocuments(lodgeQuery);
         const totalBookings = await Booking.countDocuments(bookingQuery);
 
-        // Get revenue
+        // Get revenue - only from confirmed/completed bookings
+        let aggregateMatch = { ...bookingQuery };
+        // Only count revenue from confirmed, checked-in, or checked-out bookings
+        aggregateMatch.status = { $in: ['confirmed', 'checked-in', 'checked-out'] };
+
         const revenueResult = await Booking.aggregate([
-            { $match: bookingQuery },
-            { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+            { $match: aggregateMatch },
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: { $ifNull: ["$totalAmount", 0] } }
+                }
+            }
         ]);
-        const totalRevenue = revenueResult.length > 0 ? revenueResult[0].total : 0;
+        const totalRevenue = revenueResult.length > 0 ? (revenueResult[0].total || 0) : 0;
+
+        // Get today's revenue
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayRevenue = await Booking.aggregate([
+            {
+                $match: {
+                    ...bookingQuery,
+                    createdAt: { $gte: today },
+                    status: { $in: ['confirmed', 'checked-in', 'checked-out'] }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: { $ifNull: ["$totalAmount", 0] } }
+                }
+            }
+        ]);
 
         // Get total rooms
-        // We can use aggregation to sum availability or just fetch and reduce
-        // Room model has `available` count per room type
         const rooms = await Room.find(roomQuery);
         const totalRooms = rooms.reduce((acc, room) => acc + (room.available || 0), 0);
 
@@ -53,11 +82,29 @@ router.get('/stats', async (req, res) => {
             .sort({ createdAt: -1 })
             .limit(5);
 
+        // Get pending bookings count
+        const pendingBookings = await Booking.countDocuments({
+            ...bookingQuery,
+            status: 'pending'
+        });
+
+        // Get today's check-ins
+        const todayEnd = new Date();
+        todayEnd.setHours(23, 59, 59, 999);
+        const todayCheckIns = await Booking.countDocuments({
+            ...bookingQuery,
+            checkIn: { $gte: today, $lte: todayEnd },
+            status: { $in: ['confirmed', 'checked-in'] }
+        });
+
         res.json({
             totalLodges,
             totalRooms,
             totalBookings,
             totalRevenue,
+            todayRevenue: todayRevenue.length > 0 ? (todayRevenue[0].total || 0) : 0,
+            pendingBookings,
+            todayCheckIns,
             occupancyRate: Math.min(occupancyRate, 100),
             recentBookings
         });
