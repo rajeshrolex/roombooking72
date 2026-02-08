@@ -18,18 +18,35 @@ const LodgeCard = ({ lodge, index = 0 }) => {
         id,
         name,
         slug,
-        images,
+        images = [],
         distance,
         distanceType,
         rating,
         reviewCount,
         priceStarting,
         availability,
-        amenities
+        amenities = [],
+        rooms = []
     } = lodge;
 
+    // Fallback image if no images available
+    const displayImage = images.length > 0 ? images[0] : 'https://via.placeholder.com/400x300?text=No+Image';
+
+    // Calculate availability from rooms if rooms exist
+    const calculateAvailability = () => {
+        if (rooms && rooms.length > 0) {
+            const totalAvailable = rooms.reduce((sum, room) => sum + (room.available || 0), 0);
+            if (totalAvailable === 0) return 'full';
+            if (totalAvailable <= 5) return 'limited';
+            return 'available';
+        }
+        return availability || 'available';
+    };
+
+    const computedAvailability = calculateAvailability();
+
     const getAvailabilityBadge = () => {
-        switch (availability) {
+        switch (computedAvailability) {
             case 'available':
                 return <span className="badge-available">Available</span>;
             case 'limited':
@@ -68,7 +85,7 @@ const LodgeCard = ({ lodge, index = 0 }) => {
             {/* Image Section */}
             <div className="relative overflow-hidden aspect-[4/3]">
                 <img
-                    src={images[0]}
+                    src={displayImage}
                     alt={name}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />

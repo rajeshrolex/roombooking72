@@ -165,4 +165,24 @@ export const paymentAPI = {
     }
 };
 
-export default { lodgeAPI, bookingAPI, dashboardAPI, authAPI, userAPI, paymentAPI };
+// Upload API
+export const uploadAPI = {
+    uploadImage: async (file) => {
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const response = await fetch(`${API_BASE_URL}/upload`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Failed to upload image');
+        }
+
+        return response.json();
+    }
+};
+
+export default { lodgeAPI, bookingAPI, dashboardAPI, authAPI, userAPI, paymentAPI, uploadAPI };

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { Booking, Lodge, User } = require('../models');
+const { Booking, Lodge, User, Room } = require('../models');
 const { sendBookingEmails } = require('../utils/emailService');
 
 // Generate unique booking ID
@@ -98,6 +98,21 @@ router.post('/', async (req, res) => {
             status: 'confirmed'
         });
 
+        // Update room availability - decrement by number of rooms booked
+        if (req.body.room?.name && req.body.rooms) {
+            const roomsBooked = parseInt(req.body.rooms) || 1;
+            await Room.findOneAndUpdate(
+                {
+                    lodgeId: req.body.lodgeId,
+                    name: req.body.room.name
+                },
+                {
+                    $inc: { available: -roomsBooked }
+                }
+            );
+            console.log(`Room availability updated: ${req.body.room.name} decreased by ${roomsBooked}`);
+        }
+
         // Send email notifications (async, don't wait)
         if (req.body.customerDetails?.email) {
             sendBookingEmails({
@@ -112,6 +127,8 @@ router.post('/', async (req, res) => {
                 guests: req.body.guests || 1,
                 amount: req.body.totalAmount,
                 paymentId: req.body.paymentDetails?.paymentId,
+                paymentMethod: req.body.paymentMethod,
+                paymentStatus: req.body.paymentDetails?.status || 'pending',
                 lodgeAdminEmail
             }).then(result => {
                 console.log('Email notifications sent:', result);
@@ -131,14 +148,18 @@ router.put('/:id', async (req, res) => {
     try {
         let booking;
         const id = req.params.id;
+        const newStatus = req.body.status;
 
-        // Try to find by _id (if valid ObjectId) or bookingId
-        // Mongoose findOneAndUpdate with $or or check validity
+        // First, find the booking to get room details for availability update
+        let existingBooking = await Booking.findOne({ bookingId: id });
+        if (!existingBooking && id.match(/^[0-9a-fA-F]{24}$/)) {
+            existingBooking = await Booking.findById(id);
+        }
 
-        // Strategy: First try by bookingId as it's our custom ID and unique
+        // Update the booking status
         booking = await Booking.findOneAndUpdate(
             { bookingId: id },
-            { status: req.body.status },
+            { status: newStatus },
             { new: true }
         );
 
@@ -146,7 +167,7 @@ router.put('/:id', async (req, res) => {
         if (!booking && id.match(/^[0-9a-fA-F]{24}$/)) {
             booking = await Booking.findByIdAndUpdate(
                 id,
-                { status: req.body.status },
+                { status: newStatus },
                 { new: true }
             );
         }
@@ -154,6 +175,24 @@ router.put('/:id', async (req, res) => {
         if (!booking) {
             return res.status(404).json({ message: 'Booking not found' });
         }
+
+        // If booking is cancelled or checked-out, restore room availability
+        if ((newStatus === 'cancelled' || newStatus === 'checked-out') && existingBooking) {
+            const roomsToRestore = parseInt(existingBooking.rooms) || 1;
+            if (existingBooking.roomName && existingBooking.lodgeId) {
+                await Room.findOneAndUpdate(
+                    {
+                        lodgeId: existingBooking.lodgeId,
+                        name: existingBooking.roomName
+                    },
+                    {
+                        $inc: { available: roomsToRestore }
+                    }
+                );
+                console.log(`Room availability restored (${newStatus}): ${existingBooking.roomName} increased by ${roomsToRestore}`);
+            }
+        }
+
         res.json(booking);
     } catch (err) {
         res.status(400).json({ message: err.message });

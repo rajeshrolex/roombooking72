@@ -218,14 +218,18 @@ const LodgeDetail = () => {
                                 Select a Room
                             </h2>
                             <div className="space-y-4">
-                                {lodge.rooms.map((room, index) => (
-                                    <RoomCard
-                                        key={room._id || index}
-                                        room={room}
-                                        onSelect={handleRoomSelect}
-                                        isSelected={selectedRoom?.name === room.name}
-                                    />
-                                ))}
+                                {lodge.rooms && lodge.rooms.length > 0 ? (
+                                    lodge.rooms.map((room, index) => (
+                                        <RoomCard
+                                            key={room._id || index}
+                                            room={room}
+                                            onSelect={handleRoomSelect}
+                                            isSelected={selectedRoom?._id === room._id}
+                                        />
+                                    ))
+                                ) : (
+                                    <p className="text-gray-500 text-center py-4">No rooms available</p>
+                                )}
                             </div>
                         </motion.div>
 

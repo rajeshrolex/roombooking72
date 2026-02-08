@@ -2,9 +2,20 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, X, ZoomIn } from 'lucide-react';
 
-const PhotoGallery = ({ images, lodgeName }) => {
+const PhotoGallery = ({ images = [], lodgeName }) => {
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+
+    // Handle empty images array
+    if (!images || images.length === 0) {
+        return (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-4">
+                <div className="md:col-span-2 relative aspect-[16/10] md:aspect-[16/9] rounded-xl overflow-hidden bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-500">No images available</span>
+                </div>
+            </div>
+        );
+    }
 
     const openLightbox = (index) => {
         setSelectedIndex(index);
@@ -138,8 +149,8 @@ const PhotoGallery = ({ images, lodgeName }) => {
                                         setSelectedIndex(index);
                                     }}
                                     className={`w-12 h-12 rounded-lg overflow-hidden border-2 transition-all ${index === selectedIndex
-                                            ? 'border-white scale-110'
-                                            : 'border-transparent opacity-60 hover:opacity-100'
+                                        ? 'border-white scale-110'
+                                        : 'border-transparent opacity-60 hover:opacity-100'
                                         }`}
                                 >
                                     <img

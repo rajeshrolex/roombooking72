@@ -20,20 +20,62 @@ const sendGuestConfirmation = async (bookingDetails) => {
     try {
         const transporter = createTransporter();
 
+        const isPaidOnline = bookingDetails.paymentStatus === 'paid';
+        const isPayAtLodge = bookingDetails.paymentMethod === 'payAtLodge' || bookingDetails.paymentMethod === 'pay-at-lodge';
+
+        // Payment status section based on payment method
+        const paymentSection = isPayAtLodge ? `
+            <tr>
+                <td style="padding: 8px 0; color: #6b7280;">Amount Due:</td>
+                <td style="padding: 8px 0; font-weight: bold; color: #dc2626;">₹${bookingDetails.amount} (Pay at Lodge)</td>
+            </tr>
+            <tr>
+                <td style="padding: 8px 0; color: #6b7280;">Payment Status:</td>
+                <td style="padding: 8px 0; font-weight: bold; color: #f59e0b;">⏳ PENDING - Pay at Check-in</td>
+            </tr>
+        ` : `
+            <tr>
+                <td style="padding: 8px 0; color: #6b7280;">Amount Paid:</td>
+                <td style="padding: 8px 0; font-weight: bold; color: #16a34a;">₹${bookingDetails.amount}</td>
+            </tr>
+            <tr>
+                <td style="padding: 8px 0; color: #6b7280;">Payment ID:</td>
+                <td style="padding: 8px 0; font-weight: bold; color: #1f2937;">${bookingDetails.paymentId || 'N/A'}</td>
+            </tr>
+            <tr>
+                <td style="padding: 8px 0; color: #6b7280;">Payment Status:</td>
+                <td style="padding: 8px 0; font-weight: bold; color: #16a34a;">✅ PAID</td>
+            </tr>
+        `;
+
+        // Payment reminder for Pay at Lodge
+        const paymentReminder = isPayAtLodge ? `
+            <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
+                <p style="margin: 0; color: #92400e; font-size: 14px;">
+                    <strong>💰 Payment Required at Check-in:</strong><br>
+                    Please pay <strong>₹${bookingDetails.amount}</strong> via Cash or UPI at the lodge during check-in.
+                </p>
+            </div>
+        ` : '';
+
         const mailOptions = {
             from: `"Mantralayam Lodges" <${process.env.SMTP_EMAIL}>`,
             to: bookingDetails.email,
-            subject: `🙏 Booking Confirmed - ${bookingDetails.lodgeName}`,
+            subject: isPayAtLodge
+                ? `🙏 Booking Reserved (Payment Pending) - ${bookingDetails.lodgeName}`
+                : `🙏 Booking Confirmed - ${bookingDetails.lodgeName}`,
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
                     <div style="background: linear-gradient(135deg, #f97316, #ea580c); padding: 20px; border-radius: 10px 10px 0 0;">
-                        <h1 style="color: white; margin: 0; text-align: center;">🙏 Booking Confirmed!</h1>
+                        <h1 style="color: white; margin: 0; text-align: center;">🙏 ${isPayAtLodge ? 'Booking Reserved!' : 'Booking Confirmed!'}</h1>
                     </div>
                     
                     <div style="background: #fff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
                         <p style="font-size: 16px; color: #374151;">Dear <strong>${bookingDetails.guestName}</strong>,</p>
                         
-                        <p style="color: #6b7280;">Your booking at <strong>${bookingDetails.lodgeName}</strong> has been confirmed.</p>
+                        <p style="color: #6b7280;">Your booking at <strong>${bookingDetails.lodgeName}</strong> has been ${isPayAtLodge ? 'reserved' : 'confirmed'}.</p>
+                        
+                        ${paymentReminder}
                         
                         <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
                             <h3 style="margin: 0 0 15px 0; color: #1f2937;">Booking Details</h3>
@@ -58,14 +100,7 @@ const sendGuestConfirmation = async (bookingDetails) => {
                                     <td style="padding: 8px 0; color: #6b7280;">Guests:</td>
                                     <td style="padding: 8px 0; font-weight: bold; color: #1f2937;">${bookingDetails.guests}</td>
                                 </tr>
-                                <tr>
-                                    <td style="padding: 8px 0; color: #6b7280;">Amount Paid:</td>
-                                    <td style="padding: 8px 0; font-weight: bold; color: #16a34a;">₹${bookingDetails.amount}</td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 8px 0; color: #6b7280;">Payment ID:</td>
-                                    <td style="padding: 8px 0; font-weight: bold; color: #1f2937;">${bookingDetails.paymentId || 'N/A'}</td>
-                                </tr>
+                                ${paymentSection}
                             </table>
                         </div>
                         
@@ -105,10 +140,32 @@ const sendAdminNotification = async (bookingDetails) => {
         // Use lodge admin email if available, otherwise use default admin email
         const adminEmail = bookingDetails.lodgeAdminEmail || process.env.ADMIN_EMAIL;
 
+        const isPayAtLodge = bookingDetails.paymentMethod === 'payAtLodge' || bookingDetails.paymentMethod === 'pay-at-lodge';
+
+        // Payment status section based on payment method
+        const paymentStatusHtml = isPayAtLodge ? `
+            <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #f59e0b;">
+                <p style="margin: 0; color: #92400e; font-weight: bold; font-size: 18px;">
+                    ⏳ Payment: ₹${bookingDetails.amount} - PENDING (Pay at Lodge)
+                </p>
+                <p style="margin: 5px 0 0 0; color: #92400e; font-size: 14px;">
+                    Collect payment (Cash/UPI) at check-in
+                </p>
+            </div>
+        ` : `
+            <div style="background: #f0fdf4; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="margin: 0; color: #16a34a; font-weight: bold; font-size: 18px;">
+                    ✅ Payment: ₹${bookingDetails.amount} - PAID
+                </p>
+            </div>
+        `;
+
         const mailOptions = {
             from: `"Mantralayam Lodges System" <${process.env.SMTP_EMAIL}>`,
             to: adminEmail,
-            subject: `🔔 New Booking - ${bookingDetails.lodgeName}`,
+            subject: isPayAtLodge
+                ? `🔔 New Booking (Payment Pending) - ${bookingDetails.lodgeName}`
+                : `🔔 New Booking - ${bookingDetails.lodgeName}`,
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
                     <div style="background: linear-gradient(135deg, #2563eb, #1d4ed8); padding: 20px; border-radius: 10px 10px 0 0;">
@@ -116,11 +173,7 @@ const sendAdminNotification = async (bookingDetails) => {
                     </div>
                     
                     <div style="background: #fff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
-                        <div style="background: #f0fdf4; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                            <p style="margin: 0; color: #16a34a; font-weight: bold; font-size: 18px;">
-                                💵 Payment: ₹${bookingDetails.amount} - PAID
-                            </p>
-                        </div>
+                        ${paymentStatusHtml}
                         
                         <h3 style="color: #1f2937; margin-bottom: 15px;">Guest Information</h3>
                         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
@@ -163,6 +216,10 @@ const sendAdminNotification = async (bookingDetails) => {
                             <tr>
                                 <td style="padding: 8px 0; color: #6b7280;">Guests:</td>
                                 <td style="padding: 8px 0; font-weight: bold; color: #1f2937;">${bookingDetails.guests}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px 0; color: #6b7280;">Payment Method:</td>
+                                <td style="padding: 8px 0; font-weight: bold; color: #1f2937;">${isPayAtLodge ? 'Pay at Lodge (Cash/UPI)' : 'Online (UPI)'}</td>
                             </tr>
                             <tr>
                                 <td style="padding: 8px 0; color: #6b7280;">Payment ID:</td>

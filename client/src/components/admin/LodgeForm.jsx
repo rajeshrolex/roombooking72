@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Plus, Trash2, Upload, Loader2, Image } from 'lucide-react';
+import { uploadAPI } from '../../services/api';
 
 const LodgeForm = ({ lodge, onSave, onClose, isSubmitting }) => {
     const [formData, setFormData] = useState({
@@ -71,10 +72,30 @@ const LodgeForm = ({ lodge, onSave, onClose, isSubmitting }) => {
         }));
     };
 
+    const [uploadingIndex, setUploadingIndex] = useState(null);
+
     const handleImageChange = (index, value) => {
         const newImages = [...formData.images];
         newImages[index] = value;
         setFormData(prev => ({ ...prev, images: newImages }));
+    };
+
+    const handleFileUpload = async (index, file) => {
+        if (!file) return;
+
+        try {
+            setUploadingIndex(index);
+            const result = await uploadAPI.uploadImage(file);
+
+            // Use the full URL for the image
+            const imageUrl = `http://localhost:5000${result.imageUrl}`;
+            handleImageChange(index, imageUrl);
+        } catch (error) {
+            console.error('Upload error:', error);
+            alert('Failed to upload image: ' + error.message);
+        } finally {
+            setUploadingIndex(null);
+        }
     };
 
     const addImage = () => {
@@ -351,23 +372,63 @@ const LodgeForm = ({ lodge, onSave, onClose, isSubmitting }) => {
                                 <Plus size={16} /> Add Image
                             </button>
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-4">
                             {formData.images.map((img, index) => (
-                                <div key={index} className="flex gap-2">
-                                    <input
-                                        type="url"
-                                        value={img}
-                                        onChange={(e) => handleImageChange(index, e.target.value)}
-                                        placeholder="Image URL"
-                                        className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => removeImage(index)}
-                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                                    >
-                                        <Trash2 size={18} />
-                                    </button>
+                                <div key={index} className="p-4 border rounded-lg bg-gray-50">
+                                    <div className="flex items-start gap-4">
+                                        {/* Image Preview */}
+                                        <div className="w-24 h-24 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+                                            {img ? (
+                                                <img src={img} alt={`Preview ${index + 1}`} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                                    <Image size={32} />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex-1 space-y-3">
+                                            {/* File Upload */}
+                                            <div>
+                                                <label className="block text-xs text-gray-500 mb-1">Upload Image File</label>
+                                                <div className="flex gap-2">
+                                                    <input
+                                                        type="file"
+                                                        accept="image/jpeg,image/png,image/webp"
+                                                        onChange={(e) => handleFileUpload(index, e.target.files[0])}
+                                                        disabled={uploadingIndex === index}
+                                                        className="flex-1 text-sm file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-indigo-100 file:text-indigo-700 file:cursor-pointer hover:file:bg-indigo-200"
+                                                    />
+                                                    {uploadingIndex === index && (
+                                                        <div className="flex items-center text-indigo-600">
+                                                            <Loader2 size={20} className="animate-spin" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* OR URL Input */}
+                                            <div>
+                                                <label className="block text-xs text-gray-500 mb-1">Or paste image URL</label>
+                                                <input
+                                                    type="url"
+                                                    value={img}
+                                                    onChange={(e) => handleImageChange(index, e.target.value)}
+                                                    placeholder="https://example.com/image.jpg"
+                                                    className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Remove Button */}
+                                        <button
+                                            type="button"
+                                            onClick={() => removeImage(index)}
+                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg flex-shrink-0"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                         </div>

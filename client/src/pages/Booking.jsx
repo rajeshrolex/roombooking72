@@ -108,13 +108,21 @@ const Booking = () => {
                     checkOut: checkOut
                 },
                 async (paymentSuccess) => {
-                    // On Payment Success, submit booking with payment details
-                    const result = await submitBooking({
-                        paymentId: paymentSuccess.paymentId,
-                        orderId: paymentSuccess.orderId,
-                        status: 'paid'
-                    });
-                    if (result) {
+                    console.log('Payment successful:', paymentSuccess);
+                    try {
+                        // On Payment Success, submit booking with payment details
+                        const result = await submitBooking({
+                            paymentId: paymentSuccess.paymentId,
+                            orderId: paymentSuccess.orderId,
+                            status: 'paid'
+                        });
+                        console.log('Booking result:', result);
+
+                        // Navigate to confirmation page regardless
+                        navigate('/booking/confirmation');
+                    } catch (error) {
+                        console.error('Error submitting booking after payment:', error);
+                        // Still navigate to confirmation - payment was successful
                         navigate('/booking/confirmation');
                     }
                 },

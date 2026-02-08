@@ -81,7 +81,7 @@ const AmenityBadge = ({ amenity, variant = 'default', showLabel = true }) => {
 };
 
 // Grid component for displaying multiple amenities
-export const AmenityGrid = ({ amenities, variant = 'default', columns = 2 }) => {
+export const AmenityGrid = ({ amenities = [], variant = 'default', columns = 2 }) => {
     const gridCols = {
         2: 'grid-cols-1 sm:grid-cols-2',
         3: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3',
@@ -102,7 +102,7 @@ export const AmenityGrid = ({ amenities, variant = 'default', columns = 2 }) => 
 };
 
 // List component for displaying amenities in a list
-export const AmenityList = ({ amenities }) => {
+export const AmenityList = ({ amenities = [] }) => {
     return (
         <div className="space-y-3">
             {amenities.map((amenity) => (

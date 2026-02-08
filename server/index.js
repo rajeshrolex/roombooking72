@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const path = require('path');
 
 dotenv.config();
 
@@ -9,6 +10,9 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Import db
 const connectDB = require('./config/database');
@@ -28,6 +32,7 @@ const dashboardRoutes = require('./routes/dashboardRoutes');
 const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
 
 // Basic test route
 app.get('/api/test', (req, res) => {
@@ -41,6 +46,7 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/upload', uploadRoutes);
 
 const PORT = process.env.PORT || 5000;
 

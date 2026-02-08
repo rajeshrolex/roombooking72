@@ -20,7 +20,7 @@ const RoomCard = ({ room, onSelect, isSelected = false }) => {
         price,
         maxOccupancy,
         available,
-        amenities
+        amenities = []
     } = room;
 
     const amenityIcons = {
@@ -59,9 +59,8 @@ const RoomCard = ({ room, onSelect, isSelected = false }) => {
                     ? 'border-primary-500 bg-primary-50 shadow-lg ring-1 ring-primary-500'
                     : 'border-gray-200 hover:border-primary-300 bg-white hover:shadow-md'
                 }
-        ${!isAvailable ? 'opacity-60' : 'cursor-pointer'}
+        ${!isAvailable ? 'opacity-60' : ''}
       `}
-            onClick={() => isAvailable && onSelect && onSelect(room)}
         >
             {/* Badges */}
             {isBestValue && !isSelected && (
