@@ -26,8 +26,9 @@ const UserManagement = () => {
     const fetchData = async () => {
         try {
             setLoading(true);
+            // Add timestamp to prevent caching
             const [usersRes, lodgesData] = await Promise.all([
-                fetch(`${API_BASE_URL}/users`).then(r => r.json()),
+                fetch(`${API_BASE_URL}/users?t=${new Date().getTime()}`).then(r => r.json()),
                 lodgeAPI.getAll()
             ]);
             console.log('Users loaded:', usersRes);
@@ -104,6 +105,16 @@ const UserManagement = () => {
             const result = await response.json();
 
             if (result.success) {
+                // Optimistic update
+                if (editingUser) {
+                    // Update existing user in state
+                    setUsers(users.map(u => u._id === editingUser._id ? result.user : u));
+                } else {
+                    // Add new user to state
+                    setUsers([...users, result.user]);
+                }
+
+                // Also fetch fresh data to be sure (with cache busting)
                 fetchData();
                 setShowModal(false);
             } else {
