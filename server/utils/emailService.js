@@ -21,7 +21,7 @@ const sendGuestConfirmation = async (bookingDetails) => {
         const transporter = createTransporter();
 
         const isPaidOnline = bookingDetails.paymentStatus === 'paid';
-        const isPayAtLodge = bookingDetails.paymentMethod === 'payAtLodge' || bookingDetails.paymentMethod === 'pay-at-lodge';
+        const isPayAtLodge = bookingDetails.paymentMethod === 'payAtLodge';
 
         // Payment status section based on payment method
         const paymentSection = isPayAtLodge ? `
@@ -140,7 +140,7 @@ const sendAdminNotification = async (bookingDetails) => {
         // Use lodge admin email if available, otherwise use default admin email
         const adminEmail = bookingDetails.lodgeAdminEmail || process.env.ADMIN_EMAIL;
 
-        const isPayAtLodge = bookingDetails.paymentMethod === 'payAtLodge' || bookingDetails.paymentMethod === 'pay-at-lodge';
+        const isPayAtLodge = bookingDetails.paymentMethod === 'payAtLodge';
 
         // Payment status section based on payment method
         const paymentStatusHtml = isPayAtLodge ? `

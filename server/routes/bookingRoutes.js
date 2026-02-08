@@ -75,6 +75,51 @@ router.post('/', async (req, res) => {
             lodgeAdminEmail = lodgeAdmin.email;
         }
 
+        // Normalize payment method: 'upi' → 'online', keep 'payAtLodge' as is
+        let paymentMethod = req.body.paymentMethod;
+        if (paymentMethod === 'upi') {
+            paymentMethod = 'online';
+        }
+
+        // Determine payment status based on payment method and details
+        let paymentStatus = 'pending'; // Default
+
+        // If online payment with successful payment details, mark as paid
+        if (paymentMethod === 'online' && req.body.paymentDetails?.status === 'paid') {
+            paymentStatus = 'paid';
+        }
+        // If pay at lodge, always pending
+        else if (paymentMethod === 'payAtLodge') {
+            paymentStatus = 'pending';
+        }
+        // Otherwise use provided status or default to pending
+        else {
+            paymentStatus = req.body.paymentStatus || req.body.paymentDetails?.status || 'pending';
+        }
+
+        console.log('Creating booking - Original method:', req.body.paymentMethod, '→ Normalized:', paymentMethod, 'Status:', paymentStatus);
+
+        // Validate room availability before booking
+        const roomsToBook = parseInt(req.body.rooms) || 1;
+        if (req.body.room?.name) {
+            const roomAvailability = await Room.findOne({
+                lodgeId: req.body.lodgeId,
+                name: req.body.room.name
+            });
+
+            if (!roomAvailability) {
+                return res.status(404).json({ message: 'Room type not found' });
+            }
+
+            if (roomAvailability.available < roomsToBook) {
+                return res.status(400).json({
+                    message: `Only ${roomAvailability.available} room(s) available. You requested ${roomsToBook}.`,
+                    available: roomAvailability.available
+                });
+            }
+            console.log(`Room availability check passed: ${roomAvailability.available} available, booking ${roomsToBook}`);
+        }
+
         const booking = await Booking.create({
             bookingId,
             lodgeId: req.body.lodgeId,
@@ -91,26 +136,30 @@ router.post('/', async (req, res) => {
             customerEmail: req.body.customerDetails?.email,
             idType: req.body.customerDetails?.idType,
             idNumber: req.body.customerDetails?.idNumber,
-            paymentMethod: req.body.paymentMethod,
+            paymentMethod: paymentMethod,
             totalAmount: req.body.totalAmount,
             paymentId: req.body.paymentDetails?.paymentId || null,
-            paymentStatus: req.body.paymentDetails?.status || 'pending',
+            paymentStatus: paymentStatus,
             status: 'confirmed'
         });
 
         // Update room availability - decrement by number of rooms booked
-        if (req.body.room?.name && req.body.rooms) {
+        console.log('Room update check:', { roomName: req.body.room?.name, rooms: req.body.rooms, lodgeId: req.body.lodgeId });
+        if (req.body.room?.name) {
             const roomsBooked = parseInt(req.body.rooms) || 1;
-            await Room.findOneAndUpdate(
+            const updateResult = await Room.findOneAndUpdate(
                 {
                     lodgeId: req.body.lodgeId,
                     name: req.body.room.name
                 },
                 {
                     $inc: { available: -roomsBooked }
-                }
+                },
+                { new: true }
             );
-            console.log(`Room availability updated: ${req.body.room.name} decreased by ${roomsBooked}`);
+            console.log(`Room availability updated: ${req.body.room.name} decreased by ${roomsBooked}`, updateResult ? `New availability: ${updateResult.available}` : 'Room not found');
+        } else {
+            console.log('Room availability NOT updated - missing room name');
         }
 
         // Send email notifications (async, don't wait)
@@ -127,8 +176,8 @@ router.post('/', async (req, res) => {
                 guests: req.body.guests || 1,
                 amount: req.body.totalAmount,
                 paymentId: req.body.paymentDetails?.paymentId,
-                paymentMethod: req.body.paymentMethod,
-                paymentStatus: req.body.paymentDetails?.status || 'pending',
+                paymentMethod: paymentMethod, // Use normalized payment method
+                paymentStatus: paymentStatus, // Use determined payment status
                 lodgeAdminEmail
             }).then(result => {
                 console.log('Email notifications sent:', result);

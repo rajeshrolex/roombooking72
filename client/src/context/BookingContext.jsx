@@ -88,6 +88,20 @@ export const BookingProvider = ({ children }) => {
         setIsSubmitting(true);
         try {
             const totalNights = calculateTotalNights();
+
+            // Normalize payment method: 'upi' → 'online' for backend compatibility
+            // Backend expects 'online' or 'payAtLodge'
+            let normalizedPaymentMethod = bookingData.paymentMethod;
+            if (normalizedPaymentMethod === 'upi') {
+                normalizedPaymentMethod = 'online';
+            }
+
+            // Determine payment status based on payment details
+            let paymentStatus = 'pending';
+            if (paymentDetails?.status === 'paid') {
+                paymentStatus = 'paid';
+            }
+
             const bookingPayload = {
                 lodgeId: bookingData.selectedLodge?._id || bookingData.selectedLodge?.id,
                 lodgeName: bookingData.selectedLodge?.name,
@@ -101,10 +115,16 @@ export const BookingProvider = ({ children }) => {
                 guests: bookingData.guests,
                 rooms: bookingData.rooms,
                 customerDetails: bookingData.customerDetails,
-                paymentMethod: bookingData.paymentMethod,
+                paymentMethod: normalizedPaymentMethod, // Use normalized value
                 totalAmount: calculateTotalPrice() || bookingData.selectedRoom?.price * totalNights,
-                paymentDetails: paymentDetails // Add payment details if available
+                paymentDetails: paymentDetails,
+                // Explicitly set payment status at top level for clarity
+                paymentStatus: paymentStatus
             };
+
+            console.log('Submitting booking - Frontend method:', bookingData.paymentMethod, '→ Backend method:', normalizedPaymentMethod);
+            console.log('Payment Status:', bookingPayload.paymentStatus);
+            console.log('Payment Details:', paymentDetails);
 
             const result = await bookingAPI.create(bookingPayload);
 

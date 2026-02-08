@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { bookingAPI } from '../../services/api';
-import { Search, Filter, Eye, Loader2, X, Check, Clock, LogIn, LogOut, Banknote, CreditCard } from 'lucide-react';
+import { Search, Filter, Eye, Loader2, X, Check, Clock, LogIn, LogOut, Banknote, CreditCard, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 
 const BookingsList = () => {
@@ -13,9 +13,18 @@ const BookingsList = () => {
     const [selectedBooking, setSelectedBooking] = useState(null);
     const [updatingStatus, setUpdatingStatus] = useState(null);
     const [updatingPayment, setUpdatingPayment] = useState(null);
+    const [lastRefresh, setLastRefresh] = useState(new Date());
+    const [isAutoRefreshing, setIsAutoRefreshing] = useState(false);
 
+    // Auto-refresh every 10 seconds
     useEffect(() => {
-        fetchBookings();
+        fetchBookings(); // Initial fetch
+
+        const interval = setInterval(() => {
+            fetchBookingsQuietly(); // Auto-refresh
+        }, 10000); // 10 seconds
+
+        return () => clearInterval(interval); // Cleanup
     }, [statusFilter, user]);
 
     const fetchBookings = async () => {
@@ -31,10 +40,32 @@ const BookingsList = () => {
             }
             const data = await bookingAPI.getAll(filters);
             setBookings(data);
+            setLastRefresh(new Date());
         } catch (error) {
             console.error('Error fetching bookings:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Silent refresh without loading spinner
+    const fetchBookingsQuietly = async () => {
+        try {
+            setIsAutoRefreshing(true);
+            const filters = {};
+            if (statusFilter !== 'all') {
+                filters.status = statusFilter;
+            }
+            if (user?.lodgeId) {
+                filters.lodgeId = user.lodgeId;
+            }
+            const data = await bookingAPI.getAll(filters);
+            setBookings(data);
+            setLastRefresh(new Date());
+        } catch (error) {
+            console.error('Error fetching bookings:', error);
+        } finally {
+            setIsAutoRefreshing(false);
         }
     };
 
@@ -130,9 +161,29 @@ const BookingsList = () => {
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Bookings</h2>
-                    <p className="text-gray-500">Manage all incoming booking requests.</p>
+                    <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                        Bookings
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium flex items-center gap-1">
+                            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                            Live
+                        </span>
+                    </h2>
+                    <p className="text-gray-500 flex items-center gap-2">
+                        Manage all incoming booking requests.
+                        <span className="text-xs text-gray-400 flex items-center gap-1">
+                            {isAutoRefreshing && <RefreshCw size={12} className="animate-spin" />}
+                            Updated {format(lastRefresh, 'h:mm:ss a')}
+                        </span>
+                    </p>
                 </div>
+                <button
+                    onClick={fetchBookings}
+                    disabled={loading}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                >
+                    <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+                    Refresh
+                </button>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -201,12 +252,26 @@ const BookingsList = () => {
                                             ₹{booking.totalAmount?.toLocaleString() || 0}
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${booking.paymentStatus === 'paid'
-                                                ? 'bg-green-100 text-green-700'
-                                                : 'bg-yellow-100 text-yellow-700'
-                                                }`}>
-                                                {booking.paymentStatus || 'Pending'}
-                                            </span>
+                                            <div className="flex flex-col gap-1">
+                                                {/* Payment Method */}
+                                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${booking.paymentMethod === 'upi'
+                                                    ? 'bg-blue-100 text-blue-700'
+                                                    : 'bg-orange-100 text-orange-700'
+                                                    }`}>
+                                                    {booking.paymentMethod === 'upi' ? (
+                                                        <><CreditCard size={12} /> UPI</>
+                                                    ) : (
+                                                        <><Banknote size={12} /> Cash</>
+                                                    )}
+                                                </span>
+                                                {/* Payment Status */}
+                                                <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${booking.paymentStatus === 'paid'
+                                                    ? 'bg-green-100 text-green-700'
+                                                    : 'bg-yellow-100 text-yellow-700'
+                                                    }`}>
+                                                    {booking.paymentStatus === 'paid' ? '✓ Paid' : '⏳ Pending'}
+                                                </span>
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${getStatusColor(booking.status)}`}>
@@ -368,7 +433,16 @@ const BookingsList = () => {
                                 <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                                     <div>
                                         <p className="text-green-700">Payment Method</p>
-                                        <p className="font-medium text-green-900 capitalize">{selectedBooking.paymentMethod || 'Pay at Lodge'}</p>
+                                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm font-medium ${selectedBooking.paymentMethod === 'upi'
+                                            ? 'bg-blue-100 text-blue-700'
+                                            : 'bg-orange-100 text-orange-700'
+                                            }`}>
+                                            {selectedBooking.paymentMethod === 'upi' ? (
+                                                <><CreditCard size={14} /> UPI Payment</>
+                                            ) : (
+                                                <><Banknote size={14} /> Pay at Lodge (Cash)</>
+                                            )}
+                                        </span>
                                     </div>
                                     <div>
                                         <p className="text-green-700">Payment Status</p>
