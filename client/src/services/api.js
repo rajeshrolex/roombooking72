@@ -4,12 +4,12 @@ export const API_BASE_URL = `${BASE_URL}/api`;
 // Lodge API
 export const lodgeAPI = {
     getAll: async () => {
-        const response = await fetch(`${API_BASE_URL}/lodges`);
+        const response = await fetch(`${API_BASE_URL}/lodges?t=${new Date().getTime()}`);
         return response.json();
     },
 
     getBySlug: async (slug) => {
-        const response = await fetch(`${API_BASE_URL}/lodges/${slug}`);
+        const response = await fetch(`${API_BASE_URL}/lodges/${slug}?t=${new Date().getTime()}`);
         return response.json();
     },
 
