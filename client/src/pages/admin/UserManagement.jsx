@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { lodgeAPI } from '../../services/api';
+import { lodgeAPI, API_BASE_URL } from '../../services/api';
 import { UserPlus, Trash2, Edit2, X, Loader2, Users, Building2, Shield, ShieldCheck } from 'lucide-react';
-
-const API_BASE_URL = 'http://localhost:5000/api';
 
 const UserManagement = () => {
     const { user } = useAuth();

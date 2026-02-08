@@ -1,4 +1,5 @@
-const API_BASE_URL = 'http://localhost:5000/api';
+export const BASE_URL = 'https://lavender-porcupine-989406.hostingersite.com';
+export const API_BASE_URL = `${BASE_URL}/api`;
 
 // Lodge API
 export const lodgeAPI = {
