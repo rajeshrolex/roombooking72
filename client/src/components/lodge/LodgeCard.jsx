@@ -80,109 +80,90 @@ const LodgeCard = ({ lodge, index = 0 }) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: index * 0.1 }}
-            className="card group"
+            className="group relative bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden"
         >
             {/* Image Section */}
-            <div className="relative overflow-hidden aspect-[4/3]">
+            <div className="relative aspect-[4/3] overflow-hidden">
                 <img
                     src={displayImage}
                     alt={name}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
 
-                {/* Availability Badge */}
-                <div className="absolute top-3 left-3">
+                {/* Overlays */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60" />
+
+                {/* Top Badges */}
+                <div className="absolute top-3 left-3 flex flex-col gap-2">
                     {getAvailabilityBadge()}
+                    {rating >= 4.5 && (
+                        <div className="flex items-center gap-1 bg-yellow-400 text-yellow-950 px-2 py-1 rounded-full text-[10px] font-bold shadow-md">
+                            <Star size={10} className="fill-current" />
+                            Trusted by Devotees
+                        </div>
+                    )}
                 </div>
 
-                {/* Distance Badge */}
                 <div className="absolute top-3 right-3">
                     {getDistanceBadge()}
                 </div>
-
-                {/* Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-                {/* Trusted Badge - Show for high rated lodges */}
-                {rating >= 4.5 && (
-                    <div className="absolute bottom-3 left-3 flex items-center gap-1 bg-yellow-400 text-yellow-900 px-2 py-1 rounded-md text-xs font-bold shadow-sm transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
-                        <Star size={10} className="fill-current" />
-                        Trusted by Devotees
-                    </div>
-                )}
             </div>
 
             {/* Content Section */}
             <div className="p-4">
-                {/* Title & Rating */}
-                <div className="flex items-start justify-between gap-2 mb-2">
-                    <Link to={`/lodge/${slug}`}>
-                        <h3 className="text-lg font-semibold text-gray-900 line-clamp-2 group-hover:text-primary-600 transition-colors">
-                            {name}
-                        </h3>
-                    </Link>
-                    <div className="flex items-center gap-1 bg-green-50 px-2 py-1 rounded-lg flex-shrink-0">
-                        <Star size={14} className="text-green-600 fill-green-600" />
-                        <span className="text-sm font-semibold text-green-700">{rating}</span>
+                {/* Title */}
+                <Link to={`/lodge/${slug}`}>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-primary-600 transition-colors line-clamp-1">
+                        {name}
+                        .</h3>
+                </Link>
+
+                {/* Rating & Reviews */}
+                <div className="flex items-center gap-2 mb-3">
+                    <div className="flex items-center gap-1 bg-green-600 text-white px-1.5 py-0.5 rounded text-xs font-bold">
+                        <span>{rating}</span>
+                        <Star size={10} className="fill-current" />
                     </div>
+                    <span className="text-xs text-gray-500 font-medium">
+                        ({reviewCount} reviews)
+                    </span>
                 </div>
 
-                {/* Reviews */}
-                <p className="text-sm text-gray-500 mb-3">
-                    {reviewCount} reviews
-                </p>
-
                 {/* Amenities */}
-                <div className="flex flex-wrap gap-2 mb-4">
-                    {amenities.slice(0, 4).map((amenity) => {
-                        const IconComponent = amenityIcons[amenity];
-                        return IconComponent ? (
-                            <span key={amenity} className="flex items-center gap-1 text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
-                                <IconComponent size={12} />
-                            </span>
-                        ) : null;
-                    })}
-                    {amenities.length > 4 && (
-                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                            +{amenities.length - 4} more
+                <div className="flex items-center gap-2 mb-4">
+                    <div className="flex -space-x-2">
+                        {amenities.slice(0, 3).map((amenity, i) => {
+                            const Icon = amenityIcons[amenity];
+                            return Icon ? (
+                                <div key={i} className="w-6 h-6 rounded-full bg-gray-50 border border-white flex items-center justify-center text-gray-400">
+                                    <Icon size={12} />
+                                </div>
+                            ) : null;
+                        })}
+                    </div>
+                    {amenities.length > 3 && (
+                        <span className="text-xs text-gray-500 font-medium">
+                            +{amenities.length - 3} more
                         </span>
                     )}
                 </div>
 
-                {/* Price & Actions */}
-                <div className="flex items-end justify-between pt-3 border-t border-gray-100">
+                {/* Price & Action */}
+                <div className="flex items-end justify-between pt-3 border-t border-dashed border-gray-100">
                     <div>
-                        <p className="text-xs text-gray-500">Starting from</p>
-                        <p className="text-xl font-bold text-gray-900">
-                            ₹{priceStarting}
-                            <span className="text-sm font-normal text-gray-500">/night</span>
-                        </p>
+                        <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wide">Starting from</p>
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-xl font-bold text-gray-900">₹{priceStarting}</span>
+                            <span className="text-xs text-gray-400">/night</span>
+                        </div>
                     </div>
 
-                    <div className="flex gap-2">
-                        <a
-                            href={`tel:${lodge.phone}`}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Call Now"
-                        >
-                            <Phone size={20} />
-                        </a>
-                        <a
-                            href={`https://wa.me/${lodge.whatsapp?.replace(/[^0-9]/g, '')}?text=Hi, I want to book a room at ${name}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                            title="WhatsApp"
-                        >
-                            <MessageCircle size={20} />
-                        </a>
-                        <Link
-                            to={`/lodge/${slug}`}
-                            className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white text-sm font-medium rounded-lg transition-colors"
-                        >
-                            View
-                        </Link>
-                    </div>
+                    <Link
+                        to={`/lodge/${slug}`}
+                        className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors"
+                    >
+                        View
+                    </Link>
                 </div>
             </div>
         </motion.div>
