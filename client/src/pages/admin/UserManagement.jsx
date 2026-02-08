@@ -23,9 +23,9 @@ const UserManagement = () => {
         fetchData();
     }, []);
 
-    const fetchData = async () => {
+    const fetchData = async (showLoading = true) => {
         try {
-            setLoading(true);
+            if (showLoading) setLoading(true);
             // Add timestamp to prevent caching
             const [usersRes, lodgesData] = await Promise.all([
                 fetch(`${API_BASE_URL}/users?t=${new Date().getTime()}`).then(r => r.json()),
@@ -39,7 +39,7 @@ const UserManagement = () => {
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
-            setLoading(false);
+            if (showLoading) setLoading(false);
         }
     };
 
@@ -115,7 +115,7 @@ const UserManagement = () => {
                 }
 
                 // Also fetch fresh data to be sure (with cache busting)
-                fetchData();
+                fetchData(false);
                 setShowModal(false);
             } else {
                 alert(result.message || 'Failed to save user');
@@ -139,6 +139,7 @@ const UserManagement = () => {
 
             if (result.success) {
                 setUsers(users.filter(u => u._id !== userId));
+                fetchData(false);
             } else {
                 alert(result.message || 'Failed to delete user');
             }
