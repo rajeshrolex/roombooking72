@@ -1,4 +1,4 @@
-// Mock data for Mantralayam Private Lodges
+// Mock data for Bhakta Nivas
 // This will be replaced with actual API data in production
 
 // Spiritual Greetings - Used on website header/footer

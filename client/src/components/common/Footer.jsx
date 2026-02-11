@@ -40,14 +40,21 @@ const Footer = () => {
                                 <span className="text-2xl">🙏</span>
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold">Mantralayam</h3>
-                                <p className="text-sm text-gray-400">Private Lodges</p>
+                                <h3 className="text-xl font-bold">Bhakta Nivas</h3>
+                                <p className="text-xs text-gray-400">Private Lodges & Hotels for Devotees</p>
                             </div>
                         </div>
-                        <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+                        <p className="text-gray-400 text-sm mb-4 leading-relaxed">
                             Your trusted platform for booking private lodges near Sri Raghavendra Swamy Mutt.
                             Comfortable stays for devotees at affordable prices.
                         </p>
+                        <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700 mb-6">
+                            <p className="text-xs text-gray-400 leading-relaxed text-justify">
+                                <span className="text-gray-300 font-semibold block mb-1">Disclaimer:</span>
+                                This website is a private accommodation booking platform created to help devotees find nearby lodges and hotels easily.
+                                We are not an official website of Sri Raghavendra Swamy Mutt, Mantralayam, and we have no affiliation with the Mutt or its management.
+                            </p>
+                        </div>
                         <div className="flex gap-4">
                             <a href="#" className="w-10 h-10 rounded-full bg-gray-800 hover:bg-primary-600 flex items-center justify-center transition-colors">
                                 <Facebook size={18} />
@@ -144,7 +151,7 @@ const Footer = () => {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                     <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                         <p className="text-gray-400 text-sm text-center md:text-left">
-                            © {currentYear} Mantralayam Private Lodges. All rights reserved.
+                            © {currentYear} Bhakta Nivas. All rights reserved.
                         </p>
                         <p className="text-gray-500 text-sm flex items-center gap-1">
                             Made with <Heart size={14} className="text-red-500" /> for Devotees

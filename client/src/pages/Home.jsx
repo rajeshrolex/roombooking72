@@ -105,7 +105,7 @@ const Home = () => {
                         {/* Badge */}
                         <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-white text-sm font-medium mb-6 border border-white/30">
                             <span className="text-lg">🙏</span>
-                            Only Private Lodges • No Mutt Lodges
+                            Bhakta Nivas • Only Private Lodges
                         </div>
 
                         {/* Main Headline */}

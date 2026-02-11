@@ -52,10 +52,10 @@ const Navbar = () => {
                             <img src="/logo.png" alt="Mantralayam Lodges" className="w-10 h-10 md:w-12 md:h-12 object-contain" />
                             <div className="hidden sm:block">
                                 <h1 className="text-lg md:text-xl font-bold text-gray-900 leading-tight">
-                                    Mantralayam
+                                    Bhakta Nivas
                                 </h1>
-                                <p className="text-xs text-primary-600 font-medium -mt-1">
-                                    Private Lodges
+                                <p className="text-[10px] md:text-xs text-primary-600 font-medium -mt-0.5">
+                                    Private Lodges & Hotels for Devotees
                                 </p>
                             </div>
                         </Link>

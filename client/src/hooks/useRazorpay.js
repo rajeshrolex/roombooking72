@@ -32,7 +32,7 @@ export const useRazorpay = () => {
                 key: RAZORPAY_KEY,
                 amount: orderResponse.amount,
                 currency: orderResponse.currency,
-                name: 'Mantralayam Private Lodges',
+                name: 'Bhakta Nivas',
                 description: `Booking at ${bookingDetails.lodgeName}`,
                 order_id: orderResponse.orderId,
                 handler: async function (response) {

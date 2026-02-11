@@ -312,7 +312,7 @@ const LodgeList = () => {
                 {/* Results Count */}
                 <div className="mb-6">
                     <h1 className="text-2xl font-bold text-gray-900">
-                        {filteredLodges.length} Private Lodges in Mantralayam
+                        Bhakta Nivas: Private Lodges in Mantralayam
                     </h1>
                     <p className="text-gray-600 mt-1">
                         Near Sri Raghavendra Swamy Mutt
