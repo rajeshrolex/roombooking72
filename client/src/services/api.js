@@ -166,6 +166,23 @@ export const paymentAPI = {
     }
 };
 
+// Reviews API
+export const reviewAPI = {
+    getForLodge: async (slug) => {
+        const response = await fetch(`${API_BASE_URL}/reviews/${slug}`);
+        return response.json();
+    },
+
+    create: async (slug, reviewData) => {
+        const response = await fetch(`${API_BASE_URL}/reviews/${slug}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(reviewData)
+        });
+        return response.json();
+    }
+};
+
 // Upload API
 export const uploadAPI = {
     uploadImage: async (file) => {
@@ -186,4 +203,4 @@ export const uploadAPI = {
     }
 };
 
-export default { lodgeAPI, bookingAPI, dashboardAPI, authAPI, userAPI, paymentAPI, uploadAPI };
+export default { lodgeAPI, bookingAPI, dashboardAPI, authAPI, userAPI, paymentAPI, uploadAPI, reviewAPI };

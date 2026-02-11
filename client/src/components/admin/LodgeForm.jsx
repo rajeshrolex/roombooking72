@@ -455,7 +455,7 @@ const LodgeForm = ({ lodge, onSave, onClose, isSubmitting }) => {
                                             <Trash2 size={16} />
                                         </button>
                                     </div>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                                         <div>
                                             <label className="block text-xs text-gray-500 mb-1">Type</label>
                                             <select
@@ -483,6 +483,16 @@ const LodgeForm = ({ lodge, onSave, onClose, isSubmitting }) => {
                                                 type="number"
                                                 value={room.price}
                                                 onChange={(e) => handleRoomChange(index, 'price', e.target.value)}
+                                                className="w-full px-3 py-1.5 border rounded text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">Max Guests</label>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                value={room.maxOccupancy ?? 2}
+                                                onChange={(e) => handleRoomChange(index, 'maxOccupancy', e.target.value)}
                                                 className="w-full px-3 py-1.5 border rounded text-sm"
                                             />
                                         </div>

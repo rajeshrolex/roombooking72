@@ -85,6 +85,14 @@ const LodgeDetail = () => {
     const handleRoomSelect = (room) => {
         setSelectedRoom(room);
         selectRoom(room);
+
+        // Clamp guests to this room's max occupancy
+        const maxGuests = room?.maxOccupancy || 6;
+        setGuestsValue((prev) => {
+            const next = Math.min(prev || 1, maxGuests);
+            setGuests(next);
+            return next;
+        });
     };
 
     const handleBookNow = () => {
@@ -99,6 +107,9 @@ const LodgeDetail = () => {
     // Calculate total nights and price
     const totalNights = Math.max(1, Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24)));
     const totalPrice = selectedRoom ? selectedRoom.price * totalNights : 0;
+
+    // Max guests allowed for current selected room (fallback to 6)
+    const maxGuestsForSelectedRoom = selectedRoom?.maxOccupancy || 6;
 
     const getGoogleMapsUrl = () => {
         return `https://www.google.com/maps/search/?api=1&query=Sri+Raghavendra+Swamy+Mutt+Mantralayam`;
@@ -252,7 +263,7 @@ const LodgeDetail = () => {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.35 }}
                         >
-                            <ReviewsSection rating={lodge.rating} reviewCount={lodge.reviewCount} />
+                            <ReviewsSection slug={lodge.slug} />
                         </motion.div>
 
                         {/* Location */}
@@ -352,10 +363,14 @@ const LodgeDetail = () => {
                                             <Users size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                                             <select
                                                 value={guests}
-                                                onChange={(e) => setGuestsValue(Number(e.target.value))}
+                                                onChange={(e) => {
+                                                    const value = Number(e.target.value);
+                                                    setGuestsValue(value);
+                                                    setGuests(value);
+                                                }}
                                                 className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none"
                                             >
-                                                {[1, 2, 3, 4, 5, 6].map(num => (
+                                                {Array.from({ length: maxGuestsForSelectedRoom }, (_, i) => i + 1).map(num => (
                                                     <option key={num} value={num}>{num} {num === 1 ? 'Guest' : 'Guests'}</option>
                                                 ))}
                                             </select>
