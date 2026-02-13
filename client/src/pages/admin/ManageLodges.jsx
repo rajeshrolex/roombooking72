@@ -57,6 +57,7 @@ const ManageLodges = () => {
     const handleSave = async (lodgeData) => {
         setIsSubmitting(true);
         try {
+            console.log('Saving lodge data:', lodgeData);
             if (editingLodge) {
                 // Update existing lodge
                 const updated = await lodgeAPI.update(editingLodge._id, lodgeData);
@@ -69,7 +70,8 @@ const ManageLodges = () => {
             handleCloseForm();
         } catch (error) {
             console.error('Error saving lodge:', error);
-            alert('Failed to save lodge. Please try again.');
+            console.error('Error details:', error.response?.data || error.message);
+            alert(`Failed to save lodge: ${error.response?.data?.message || error.message}`);
         } finally {
             setIsSubmitting(false);
         }

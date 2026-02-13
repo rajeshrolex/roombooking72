@@ -106,7 +106,12 @@ const LodgeDetail = () => {
 
     // Calculate total nights and price
     const totalNights = Math.max(1, Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24)));
-    const totalPrice = selectedRoom ? selectedRoom.price * totalNights : 0;
+
+    const baseGuests = selectedRoom ? (selectedRoom.baseGuests || selectedRoom.maxOccupancy || 1) : 1;
+    const extraGuestPrice = selectedRoom?.extraGuestPrice || 0;
+    const extraGuests = selectedRoom ? Math.max(0, (guests || 1) - baseGuests) : 0;
+    const perNightPrice = selectedRoom ? selectedRoom.price + extraGuests * extraGuestPrice : 0;
+    const totalPrice = selectedRoom ? perNightPrice * totalNights : 0;
 
     // Max guests allowed for current selected room (fallback to 6)
     const maxGuestsForSelectedRoom = selectedRoom?.maxOccupancy || 6;
@@ -375,6 +380,13 @@ const LodgeDetail = () => {
                                                 ))}
                                             </select>
                                         </div>
+                                        {selectedRoom && (
+                                            <p className="text-xs text-gray-600 mt-1.5">
+                                                {baseGuests > 1 ? `${baseGuests} guests included` : `${baseGuests} guest included`}
+                                                {extraGuestPrice > 0 && ` • ₹${extraGuestPrice} per extra guest`}
+                                                {maxGuestsForSelectedRoom > baseGuests && ` (max ${maxGuestsForSelectedRoom})`}
+                                            </p>
+                                        )}
                                     </div>
                                     <p className="text-xs text-gray-500 mt-2 text-center">
                                         {totalNights} {totalNights === 1 ? 'night' : 'nights'}
@@ -386,8 +398,23 @@ const LodgeDetail = () => {
                                     <div className="mb-6 pb-6 border-b border-gray-100">
                                         <p className="text-sm font-medium text-gray-700 mb-2">Selected Room</p>
                                         <div className="p-3 bg-primary-50 rounded-xl">
-                                            <p className="font-semibold text-gray-900">{selectedRoom.name}</p>
-                                            <p className="text-primary-600 font-bold">₹{selectedRoom.price}/night × {totalNights} = ₹{totalPrice}</p>
+                                            <p className="font-semibold text-gray-900 mb-1">{selectedRoom.name}</p>
+                                            <div className="space-y-0.5 text-sm text-gray-700">
+                                                <div className="flex justify-between">
+                                                    <span>Room ({baseGuests > 1 ? `${baseGuests} guests` : `${baseGuests} guest`})</span>
+                                                    <span>₹{selectedRoom.price}</span>
+                                                </div>
+                                                {extraGuests > 0 && (
+                                                    <div className="flex justify-between">
+                                                        <span>Extra guests ({extraGuests})</span>
+                                                        <span>₹{extraGuests * extraGuestPrice}</span>
+                                                    </div>
+                                                )}
+                                                <div className="flex justify-between font-semibold text-primary-600 pt-1 border-t border-primary-200">
+                                                    <span>Per night × {totalNights}</span>
+                                                    <span>₹{totalPrice}</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 )}

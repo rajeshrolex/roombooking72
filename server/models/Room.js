@@ -19,6 +19,14 @@ const roomSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    baseGuests: {
+        type: Number,
+        default: 2
+    },
+    extraGuestPrice: {
+        type: Number,
+        default: 0
+    },
     maxOccupancy: {
         type: Number,
         default: 2

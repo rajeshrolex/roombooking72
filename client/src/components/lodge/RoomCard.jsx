@@ -18,6 +18,8 @@ const RoomCard = ({ room, onSelect, isSelected = false }) => {
         type,
         name,
         price,
+        baseGuests,
+        extraGuestPrice,
         maxOccupancy,
         available,
         amenities = []
@@ -96,7 +98,7 @@ const RoomCard = ({ room, onSelect, isSelected = false }) => {
 
                     <h4 className="text-lg font-semibold text-gray-900 mb-1">{name}</h4>
 
-                    <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
+                    <div className="flex items-center gap-4 text-sm text-gray-600 mb-1">
                         <span className="flex items-center gap-1">
                             <Users size={16} />
                             Max {maxOccupancy} {maxOccupancy === 1 ? 'Guest' : 'Guests'}
@@ -107,6 +109,11 @@ const RoomCard = ({ room, onSelect, isSelected = false }) => {
                             </span>
                         )}
                     </div>
+                    {extraGuestPrice > 0 && (
+                        <p className="text-xs text-gray-500 mb-3">
+                            Price includes up to {baseGuests || maxOccupancy} guest{(baseGuests || maxOccupancy) > 1 ? 's' : ''}. Extra guest: ₹{extraGuestPrice}/night
+                        </p>
+                    )}
 
                     {/* Amenities */}
                     <div className="flex flex-wrap gap-2">

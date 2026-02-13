@@ -20,40 +20,65 @@ const sendGuestConfirmation = async (bookingDetails) => {
     try {
         const transporter = createTransporter();
 
-        const isPaidOnline = bookingDetails.paymentStatus === 'paid';
-        const isPayAtLodge = bookingDetails.paymentMethod === 'payAtLodge';
+        const totalAmount = bookingDetails.amount;
+        const amountPaid = bookingDetails.amountPaid || 0;
+        const balanceAmount = bookingDetails.balanceAmount || 0;
+        const hasPartialPayment = amountPaid > 0 && balanceAmount > 0;
+        const isFullyPaid = amountPaid === totalAmount && balanceAmount === 0;
+        const isPayAtLodge = amountPaid === 0 && balanceAmount === totalAmount;
 
-        // Payment status section based on payment method
-        const paymentSection = isPayAtLodge ? `
+        // Payment status section based on payment breakdown
+        let paymentSection = `
             <tr>
-                <td style="padding: 8px 0; color: #6b7280;">Amount Due:</td>
-                <td style="padding: 8px 0; font-weight: bold; color: #dc2626;">₹${bookingDetails.amount} (Pay at Lodge)</td>
-            </tr>
-            <tr>
-                <td style="padding: 8px 0; color: #6b7280;">Payment Status:</td>
-                <td style="padding: 8px 0; font-weight: bold; color: #f59e0b;">⏳ PENDING - Pay at Check-in</td>
-            </tr>
-        ` : `
-            <tr>
-                <td style="padding: 8px 0; color: #6b7280;">Amount Paid:</td>
-                <td style="padding: 8px 0; font-weight: bold; color: #16a34a;">₹${bookingDetails.amount}</td>
-            </tr>
-            <tr>
-                <td style="padding: 8px 0; color: #6b7280;">Payment ID:</td>
-                <td style="padding: 8px 0; font-weight: bold; color: #1f2937;">${bookingDetails.paymentId || 'N/A'}</td>
-            </tr>
-            <tr>
-                <td style="padding: 8px 0; color: #6b7280;">Payment Status:</td>
-                <td style="padding: 8px 0; font-weight: bold; color: #16a34a;">✅ PAID</td>
+                <td style="padding: 8px 0; color: #6b7280;">Total Amount:</td>
+                <td style="padding: 8px 0; font-weight: bold; color: #1f2937;">₹${totalAmount}</td>
             </tr>
         `;
 
-        // Payment reminder for Pay at Lodge
-        const paymentReminder = isPayAtLodge ? `
+        if (amountPaid > 0) {
+            paymentSection += `
+                <tr>
+                    <td style="padding: 8px 0; color: #6b7280;">Paid Online:</td>
+                    <td style="padding: 8px 0; font-weight: bold; color: #16a34a;">₹${amountPaid} ✅</td>
+                </tr>
+            `;
+        }
+
+        if (balanceAmount > 0) {
+            paymentSection += `
+                <tr>
+                    <td style="padding: 8px 0; color: #6b7280;">Balance Due at Lodge:</td>
+                    <td style="padding: 8px 0; font-weight: bold; color: #dc2626;">₹${balanceAmount} 💰</td>
+                </tr>
+            `;
+        }
+
+        if (isFullyPaid) {
+            paymentSection += `
+                <tr>
+                    <td style="padding: 8px 0; color: #6b7280;">Payment ID:</td>
+                    <td style="padding: 8px 0; font-weight: bold; color: #1f2937;">${bookingDetails.paymentId || 'N/A'}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: #6b7280;">Payment Status:</td>
+                    <td style="padding: 8px 0; font-weight: bold; color: #16a34a;">✅ FULLY PAID</td>
+                </tr>
+            `;
+        } else {
+            paymentSection += `
+                <tr>
+                    <td style="padding: 8px 0; color: #6b7280;">Payment Status:</td>
+                    <td style="padding: 8px 0; font-weight: bold; color: #f59e0b;">⏳ PENDING</td>
+                </tr>
+            `;
+        }
+
+        // Payment reminder for balance due
+        const paymentReminder = balanceAmount > 0 ? `
             <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
                 <p style="margin: 0; color: #92400e; font-size: 14px;">
-                    <strong>💰 Payment Required at Check-in:</strong><br>
-                    Please pay <strong>₹${bookingDetails.amount}</strong> via Cash or UPI at the lodge during check-in.
+                    <strong>💰 Balance Payment Required at Check-in:</strong><br>
+                    Please pay remaining <strong>₹${balanceAmount}</strong> via Cash or UPI at the lodge during check-in.
                 </p>
             </div>
         ` : '';
@@ -61,19 +86,19 @@ const sendGuestConfirmation = async (bookingDetails) => {
         const mailOptions = {
             from: `"Mantralayam Lodges" <${process.env.SMTP_EMAIL}>`,
             to: bookingDetails.email,
-            subject: isPayAtLodge
-                ? `🙏 Booking Reserved (Payment Pending) - ${bookingDetails.lodgeName}`
+            subject: balanceAmount > 0
+                ? `🙏 Booking Reserved (Balance ₹${balanceAmount} Due) - ${bookingDetails.lodgeName}`
                 : `🙏 Booking Confirmed - ${bookingDetails.lodgeName}`,
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
                     <div style="background: linear-gradient(135deg, #f97316, #ea580c); padding: 20px; border-radius: 10px 10px 0 0;">
-                        <h1 style="color: white; margin: 0; text-align: center;">🙏 ${isPayAtLodge ? 'Booking Reserved!' : 'Booking Confirmed!'}</h1>
+                        <h1 style="color: white; margin: 0; text-align: center;">🙏 ${isFullyPaid ? 'Booking Confirmed!' : 'Booking Reserved!'}</h1>
                     </div>
                     
                     <div style="background: #fff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
                         <p style="font-size: 16px; color: #374151;">Dear <strong>${bookingDetails.guestName}</strong>,</p>
                         
-                        <p style="color: #6b7280;">Your booking at <strong>${bookingDetails.lodgeName}</strong> has been ${isPayAtLodge ? 'reserved' : 'confirmed'}.</p>
+                        <p style="color: #6b7280;">Your booking at <strong>${bookingDetails.lodgeName}</strong> has been ${isFullyPaid ? 'confirmed' : 'reserved'}.</p>
                         
                         ${paymentReminder}
                         
@@ -140,32 +165,48 @@ const sendAdminNotification = async (bookingDetails) => {
         // Use lodge admin email if available, otherwise use default admin email
         const adminEmail = bookingDetails.lodgeAdminEmail || process.env.ADMIN_EMAIL;
 
-        const isPayAtLodge = bookingDetails.paymentMethod === 'payAtLodge';
+        const totalAmount = bookingDetails.amount;
+        const amountPaid = bookingDetails.amountPaid || 0;
+        const balanceAmount = bookingDetails.balanceAmount || 0;
+        const isFullyPaid = amountPaid === totalAmount && balanceAmount === 0;
 
-        // Payment status section based on payment method
-        const paymentStatusHtml = isPayAtLodge ? `
-            <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #f59e0b;">
-                <p style="margin: 0; color: #92400e; font-weight: bold; font-size: 18px;">
-                    ⏳ Payment: ₹${bookingDetails.amount} - PENDING (Pay at Lodge)
+        // Payment status section based on payment breakdown
+        let paymentStatusHtml = `
+            <div style="background: ${isFullyPaid ? '#f0fdf4' : '#fef3c7'}; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid ${isFullyPaid ? '#16a34a' : '#f59e0b'};">
+                <p style="margin: 0; color: ${isFullyPaid ? '#16a34a' : '#92400e'}; font-weight: bold; font-size: 18px;">
+                    ${isFullyPaid ? '✅' : '⏳'} Total Amount: ₹${totalAmount}
+                </p>
+        `;
+
+        if (amountPaid > 0) {
+            paymentStatusHtml += `
+                <p style="margin: 5px 0 0 0; color: #16a34a; font-size: 16px;">
+                    ✅ Paid Online: ₹${amountPaid}
+                </p>
+            `;
+        }
+
+        if (balanceAmount > 0) {
+            paymentStatusHtml += `
+                <p style="margin: 5px 0 0 0; color: #dc2626; font-weight: bold; font-size: 16px;">
+                    💰 Balance to Collect: ₹${balanceAmount}
                 </p>
                 <p style="margin: 5px 0 0 0; color: #92400e; font-size: 14px;">
-                    Collect payment (Cash/UPI) at check-in
+                    Collect this amount (Cash/UPI) at check-in
                 </p>
-            </div>
-        ` : `
-            <div style="background: #f0fdf4; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                <p style="margin: 0; color: #16a34a; font-weight: bold; font-size: 18px;">
-                    ✅ Payment: ₹${bookingDetails.amount} - PAID
-                </p>
+            `;
+        }
+
+        paymentStatusHtml += `
             </div>
         `;
 
         const mailOptions = {
             from: `"Mantralayam Lodges System" <${process.env.SMTP_EMAIL}>`,
             to: adminEmail,
-            subject: isPayAtLodge
-                ? `🔔 New Booking (Payment Pending) - ${bookingDetails.lodgeName}`
-                : `🔔 New Booking - ${bookingDetails.lodgeName}`,
+            subject: balanceAmount > 0
+                ? `🔔 New Booking (Balance ₹${balanceAmount} to Collect) - ${bookingDetails.lodgeName}`
+                : `🔔 New Booking (Fully Paid) - ${bookingDetails.lodgeName}`,
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
                     <div style="background: linear-gradient(135deg, #2563eb, #1d4ed8); padding: 20px; border-radius: 10px 10px 0 0;">

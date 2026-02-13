@@ -1,4 +1,4 @@
-export const BASE_URL = 'https://mintcream-pigeon-160210.hostingersite.com';
+export const BASE_URL = 'http://localhost:5000';
 export const API_BASE_URL = `${BASE_URL}/api`;
 
 // Lodge API

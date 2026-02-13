@@ -32,6 +32,9 @@ router.post('/', async (req, res) => {
     try {
         const { rooms, ...lodgeData } = req.body;
 
+        console.log('Creating lodge with data:', lodgeData);
+        console.log('Rooms data:', rooms);
+
         const lodge = await Lodge.create(lodgeData);
 
         // Create rooms if provided
@@ -40,6 +43,7 @@ router.post('/', async (req, res) => {
                 ...room,
                 lodgeId: lodge._id
             }));
+            console.log('Creating rooms:', roomsWithLodgeId);
             await Room.insertMany(roomsWithLodgeId);
         }
 
@@ -48,7 +52,9 @@ router.post('/', async (req, res) => {
 
         res.status(201).json(savedLodge);
     } catch (err) {
-        res.status(400).json({ message: err.message });
+        console.error('Error creating lodge:', err);
+        console.error('Error details:', err.message);
+        res.status(400).json({ message: err.message, error: err.toString() });
     }
 });
 
@@ -56,6 +62,9 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
     try {
         const { rooms, ...lodgeData } = req.body;
+
+        console.log('Updating lodge with data:', lodgeData);
+        console.log('Rooms data:', rooms);
 
         const lodge = await Lodge.findByIdAndUpdate(req.params.id, lodgeData, { new: true });
 
@@ -71,13 +80,16 @@ router.put('/:id', async (req, res) => {
                 ...room,
                 lodgeId: lodge._id
             }));
+            console.log('Updating rooms:', roomsWithLodgeId);
             await Room.insertMany(roomsWithLodgeId);
         }
 
         const updatedLodge = await Lodge.findById(req.params.id).populate('rooms');
         res.json(updatedLodge);
     } catch (err) {
-        res.status(400).json({ message: err.message });
+        console.error('Error updating lodge:', err);
+        console.error('Error details:', err.message);
+        res.status(400).json({ message: err.message, error: err.toString() });
     }
 });
 

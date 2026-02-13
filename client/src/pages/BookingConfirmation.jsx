@@ -49,7 +49,12 @@ const BookingConfirmation = () => {
     const totalNights = checkIn && checkOut
         ? Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24))
         : 1;
-    const totalPrice = selectedRoom.price * totalNights;
+
+    const baseGuests = selectedRoom.baseGuests || selectedRoom.maxOccupancy || 1;
+    const extraGuestPrice = selectedRoom.extraGuestPrice || 0;
+    const extraGuests = Math.max(0, (guests || 1) - baseGuests);
+    const perNightPrice = selectedRoom.price + extraGuests * extraGuestPrice;
+    const totalPrice = perNightPrice * totalNights;
 
     const getWhatsAppShareUrl = () => {
         const message = `🙏 Booking Confirmed!\n\n` +

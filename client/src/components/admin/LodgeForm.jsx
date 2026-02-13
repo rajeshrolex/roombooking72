@@ -116,7 +116,19 @@ const LodgeForm = ({ lodge, onSave, onClose, isSubmitting }) => {
     const addRoom = () => {
         setFormData(prev => ({
             ...prev,
-            rooms: [...prev.rooms, { type: 'Non-AC', name: '', price: '', maxOccupancy: 2, available: 0, amenities: [] }]
+            rooms: [
+                ...prev.rooms,
+                {
+                    type: 'Non-AC',
+                    name: '',
+                    price: '',
+                    baseGuests: 2,
+                    extraGuestPrice: 0,
+                    maxOccupancy: 2,
+                    available: 0,
+                    amenities: []
+                }
+            ]
         }));
     };
 
@@ -135,12 +147,23 @@ const LodgeForm = ({ lodge, onSave, onClose, isSubmitting }) => {
             rating: formData.rating ? Number(formData.rating) : 0,
             reviewCount: formData.reviewCount ? Number(formData.reviewCount) : 0,
             images: formData.images.filter(img => img.trim()),
-            rooms: formData.rooms.map(room => ({
-                ...room,
-                price: Number(room.price),
-                maxOccupancy: Number(room.maxOccupancy),
-                available: Number(room.available)
-            }))
+            rooms: formData.rooms.map(room => {
+                const maxOcc = Number(room.maxOccupancy) || 1;
+                // Default: 2 guests included (or maxOcc if room smaller)
+                const defaultBase = Math.min(2, maxOcc);
+                const baseGuests = room.baseGuests !== undefined && room.baseGuests !== null && room.baseGuests !== ''
+                    ? Number(room.baseGuests)
+                    : defaultBase;
+
+                return {
+                    ...room,
+                    price: Number(room.price),
+                    baseGuests,
+                    extraGuestPrice: room.extraGuestPrice ? Number(room.extraGuestPrice) : 0,
+                    maxOccupancy: maxOcc,
+                    available: Number(room.available)
+                };
+            })
         };
         onSave(dataToSave);
     };
@@ -455,7 +478,7 @@ const LodgeForm = ({ lodge, onSave, onClose, isSubmitting }) => {
                                             <Trash2 size={16} />
                                         </button>
                                     </div>
-                                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                                    <div className="grid grid-cols-2 md:grid-cols-7 gap-3">
                                         <div>
                                             <label className="block text-xs text-gray-500 mb-1">Type</label>
                                             <select
@@ -483,6 +506,26 @@ const LodgeForm = ({ lodge, onSave, onClose, isSubmitting }) => {
                                                 type="number"
                                                 value={room.price}
                                                 onChange={(e) => handleRoomChange(index, 'price', e.target.value)}
+                                                className="w-full px-3 py-1.5 border rounded text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">Base Guests</label>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                value={room.baseGuests ?? room.maxOccupancy ?? 2}
+                                                onChange={(e) => handleRoomChange(index, 'baseGuests', e.target.value)}
+                                                className="w-full px-3 py-1.5 border rounded text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">Extra Guest (₹)</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                value={room.extraGuestPrice ?? 0}
+                                                onChange={(e) => handleRoomChange(index, 'extraGuestPrice', e.target.value)}
                                                 className="w-full px-3 py-1.5 border rounded text-sm"
                                             />
                                         </div>

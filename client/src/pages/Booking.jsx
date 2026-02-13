@@ -41,6 +41,8 @@ const Booking = () => {
         idNumber: ''
     });
     const [errors, setErrors] = useState({});
+    const [paymentOption, setPaymentOption] = useState('full'); // 'full', 'partial', 'lodge'
+    const [customAmount, setCustomAmount] = useState('');
 
     // Redirect if no lodge/room selected
     if (!bookingData.selectedLodge || !bookingData.selectedRoom) {
@@ -59,7 +61,12 @@ const Booking = () => {
 
     const { selectedLodge, selectedRoom, checkIn, checkOut, guests } = bookingData;
     const totalNights = calculateTotalNights() || 1;
-    const totalPrice = selectedRoom.price * totalNights;
+
+    const baseGuests = selectedRoom.baseGuests || selectedRoom.maxOccupancy || 1;
+    const extraGuestPrice = selectedRoom.extraGuestPrice || 0;
+    const extraGuests = Math.max(0, (guests || 1) - baseGuests);
+    const perNightPrice = selectedRoom.price + extraGuests * extraGuestPrice;
+    const totalPrice = perNightPrice * totalNights;
 
     const validateForm = () => {
         const newErrors = {};
@@ -95,11 +102,26 @@ const Booking = () => {
     };
 
     const handleConfirmBooking = async () => {
+        // Determine amount to pay based on payment option
+        let amountToPay = totalPrice;
+
+        if (paymentOption === 'partial') {
+            // Validate custom amount
+            const customAmountNum = Number(customAmount);
+            if (!customAmount || customAmountNum <= 0 || customAmountNum > totalPrice) {
+                alert(`Please enter a valid amount between ₹1 and ₹${totalPrice}`);
+                return;
+            }
+            amountToPay = customAmountNum;
+        } else if (paymentOption === 'lodge') {
+            amountToPay = 0; // No payment needed for pay at lodge
+        }
+
         if (bookingData.paymentMethod === 'upi') {
-            // Initiate Razorpay Payment
+            // Initiate Razorpay Payment with partial or full amount
             await initiatePayment(
                 {
-                    totalAmount: totalPrice,
+                    totalAmount: amountToPay, // Use partial amount if selected
                     lodgeName: selectedLodge.name,
                     guestName: bookingData.customerDetails.name,
                     email: bookingData.customerDetails.email,
@@ -303,18 +325,126 @@ const Booking = () => {
                                 </h2>
 
                                 <div className="space-y-4">
-                                    {/* Pay at Lodge */}
+                                    {/* Pay Full Amount (UPI) */}
                                     <label
-                                        className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${bookingData.paymentMethod === 'payAtLodge'
+                                        className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${paymentOption === 'full'
                                             ? 'border-primary-500 bg-primary-50'
                                             : 'border-gray-200 hover:border-gray-300'
                                             }`}
                                     >
                                         <input
                                             type="radio"
-                                            name="payment"
-                                            checked={bookingData.paymentMethod === 'payAtLodge'}
-                                            onChange={() => handlePaymentSelect('payAtLodge')}
+                                            name="paymentOption"
+                                            checked={paymentOption === 'full'}
+                                            onChange={() => {
+                                                setPaymentOption('full');
+                                                handlePaymentSelect('upi');
+                                                setCustomAmount('');
+                                            }}
+                                            className="w-5 h-5 text-primary-500"
+                                        />
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2">
+                                                <CreditCard size={20} className="text-primary-500" />
+                                                <span className="font-semibold text-gray-900">Pay Full Amount</span>
+                                                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                                                    Instant Confirmation
+                                                </span>
+                                            </div>
+                                            <p className="text-sm text-gray-600 mt-1">
+                                                Pay ₹{totalPrice} via UPI now
+                                            </p>
+                                        </div>
+                                    </label>
+
+                                    {/* Pay Partial Amount */}
+                                    <div
+                                        className={`p-4 rounded-xl border-2 transition-all ${paymentOption === 'partial'
+                                            ? 'border-primary-500 bg-primary-50'
+                                            : 'border-gray-200'
+                                            }`}
+                                    >
+                                        <label className="flex items-center gap-4 cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="paymentOption"
+                                                checked={paymentOption === 'partial'}
+                                                onChange={() => {
+                                                    setPaymentOption('partial');
+                                                    handlePaymentSelect('upi');
+                                                }}
+                                                className="w-5 h-5 text-primary-500"
+                                            />
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <CreditCard size={20} className="text-orange-500" />
+                                                    <span className="font-semibold text-gray-900">Pay Custom Amount</span>
+                                                </div>
+                                                <p className="text-sm text-gray-600 mt-1">
+                                                    Pay partial amount now, rest at lodge
+                                                </p>
+                                            </div>
+                                        </label>
+
+                                        {paymentOption === 'partial' && (
+                                            <div className="mt-4 space-y-3">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                        Amount to Pay Online (₹)
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        max={totalPrice}
+                                                        value={customAmount}
+                                                        onChange={(e) => setCustomAmount(e.target.value)}
+                                                        placeholder={`Enter amount (Max ₹${totalPrice})`}
+                                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                                    />
+                                                </div>
+
+                                                {customAmount && Number(customAmount) > 0 && Number(customAmount) <= totalPrice && (
+                                                    <div className="bg-blue-50 p-3 rounded-lg space-y-1">
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="text-gray-600">Pay Online:</span>
+                                                            <span className="font-semibold text-green-600">₹{Number(customAmount)}</span>
+                                                        </div>
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="text-gray-600">Pay at Lodge:</span>
+                                                            <span className="font-semibold text-orange-600">₹{totalPrice - Number(customAmount)}</span>
+                                                        </div>
+                                                        <div className="flex justify-between text-sm pt-2 border-t border-blue-200">
+                                                            <span className="font-medium text-gray-900">Total:</span>
+                                                            <span className="font-bold text-gray-900">₹{totalPrice}</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {customAmount && (Number(customAmount) <= 0 || Number(customAmount) > totalPrice) && (
+                                                    <p className="text-sm text-red-600">
+                                                        Please enter amount between ₹1 and ₹{totalPrice}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Pay at Lodge */}
+                                    <label
+                                        className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${paymentOption === 'lodge'
+                                            ? 'border-primary-500 bg-primary-50'
+                                            : 'border-gray-200 hover:border-gray-300'
+                                            }`}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="paymentOption"
+                                            checked={paymentOption === 'lodge'}
+                                            onChange={() => {
+                                                setPaymentOption('lodge');
+                                                handlePaymentSelect('payAtLodge');
+                                                setCustomAmount('');
+                                            }}
                                             className="w-5 h-5 text-primary-500"
                                         />
                                         <div className="flex-1">
@@ -323,35 +453,7 @@ const Booking = () => {
                                                 <span className="font-semibold text-gray-900">Pay at Lodge</span>
                                             </div>
                                             <p className="text-sm text-gray-600 mt-1">
-                                                Pay cash or UPI directly at the lodge during check-in
-                                            </p>
-                                        </div>
-                                    </label>
-
-                                    {/* UPI */}
-                                    <label
-                                        className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${bookingData.paymentMethod === 'upi'
-                                            ? 'border-primary-500 bg-primary-50'
-                                            : 'border-gray-200 hover:border-gray-300'
-                                            }`}
-                                    >
-                                        <input
-                                            type="radio"
-                                            name="payment"
-                                            checked={bookingData.paymentMethod === 'upi'}
-                                            onChange={() => handlePaymentSelect('upi')}
-                                            className="w-5 h-5 text-primary-500"
-                                        />
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2">
-                                                <CreditCard size={20} className="text-primary-500" />
-                                                <span className="font-semibold text-gray-900">UPI Payment</span>
-                                                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                                                    Instant Confirmation
-                                                </span>
-                                            </div>
-                                            <p className="text-sm text-gray-600 mt-1">
-                                                Pay securely via GPay, PhonePe, Paytm, or any UPI app
+                                                Pay ₹{totalPrice} at check-in (Cash/UPI)
                                             </p>
                                         </div>
                                     </label>
@@ -429,8 +531,22 @@ const Booking = () => {
                             {/* Price Breakdown */}
                             <div className="space-y-2 pb-4 mb-4 border-b border-gray-100">
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-gray-600">Room ({totalNights} night{totalNights > 1 ? 's' : ''})</span>
-                                    <span className="text-gray-900">₹{selectedRoom.price * totalNights}</span>
+                                    <span className="text-gray-600">
+                                        Room base ({baseGuests > 1 ? `${baseGuests} guests` : `${baseGuests} guest`})
+                                    </span>
+                                    <span className="text-gray-900">₹{selectedRoom.price}</span>
+                                </div>
+                                {extraGuests > 0 && (
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-600">
+                                            Extra guests ({extraGuests} × ₹{extraGuestPrice})
+                                        </span>
+                                        <span className="text-gray-900">₹{extraGuests * extraGuestPrice}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between text-sm pt-2 border-t border-gray-200">
+                                    <span className="text-gray-600">Per night × {totalNights}</span>
+                                    <span className="text-gray-900 font-medium">₹{perNightPrice * totalNights}</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-gray-600">Taxes & Fees</span>

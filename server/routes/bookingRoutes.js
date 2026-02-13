@@ -120,6 +120,23 @@ router.post('/', async (req, res) => {
             console.log(`Room availability check passed: ${roomAvailability.available} available, booking ${roomsToBook}`);
         }
 
+        // Calculate amountPaid and balanceAmount
+        const totalAmount = req.body.totalAmount;
+        let amountPaid = 0;
+        let balanceAmount = totalAmount;
+
+        if (paymentStatus === 'paid') {
+            // If payment is successful, full amount is paid
+            amountPaid = totalAmount;
+            balanceAmount = 0;
+        } else if (paymentMethod === 'payAtLodge') {
+            // If pay at lodge, nothing paid yet, full balance due
+            amountPaid = 0;
+            balanceAmount = totalAmount;
+        }
+
+        console.log('Payment calculation:', { totalAmount, amountPaid, balanceAmount });
+
         const booking = await Booking.create({
             bookingId,
             lodgeId: req.body.lodgeId,
@@ -137,7 +154,9 @@ router.post('/', async (req, res) => {
             idType: req.body.customerDetails?.idType,
             idNumber: req.body.customerDetails?.idNumber,
             paymentMethod: paymentMethod,
-            totalAmount: req.body.totalAmount,
+            totalAmount: totalAmount,
+            amountPaid: amountPaid,
+            balanceAmount: balanceAmount,
             paymentId: req.body.paymentDetails?.paymentId || null,
             paymentStatus: paymentStatus,
             status: 'confirmed'
@@ -174,7 +193,9 @@ router.post('/', async (req, res) => {
                 checkIn: formatDate(req.body.checkIn),
                 checkOut: formatDate(req.body.checkOut),
                 guests: req.body.guests || 1,
-                amount: req.body.totalAmount,
+                amount: totalAmount,
+                amountPaid: amountPaid,
+                balanceAmount: balanceAmount,
                 paymentId: req.body.paymentDetails?.paymentId,
                 paymentMethod: paymentMethod, // Use normalized payment method
                 paymentStatus: paymentStatus, // Use determined payment status
