@@ -11,7 +11,8 @@ import {
     Building2,
     ChevronLeft,
     Check,
-    Shield
+    Shield,
+    Clock
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useBooking } from '../context/BookingContext';
@@ -24,6 +25,7 @@ const Booking = () => {
         bookingData,
         setCustomerDetails,
         setPaymentMethod,
+        setCheckInTime,
         submitBooking,
         isSubmitting,
         calculateTotalNights,
@@ -136,7 +138,9 @@ const Booking = () => {
                         const result = await submitBooking({
                             paymentId: paymentSuccess.paymentId,
                             orderId: paymentSuccess.orderId,
-                            status: 'paid'
+                            status: 'paid',
+                            amountPaid: amountToPay,
+                            balanceAmount: totalPrice - amountToPay
                         });
                         console.log('Booking result:', result);
 
@@ -165,7 +169,7 @@ const Booking = () => {
     return (
         <div className="min-h-screen bg-gray-50 pb-24">
             {/* Header */}
-            <div className="bg-white shadow-sm sticky top-16 md:top-20 z-40">
+            <div className="bg-white shadow-sm sticky top-14 sm:top-16 md:top-20 z-40">
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
                     <button
                         onClick={() => step === 1 ? navigate(-1) : setStep(1)}
@@ -248,6 +252,23 @@ const Booking = () => {
                                             />
                                         </div>
                                         {errors.mobile && <p className="text-red-500 text-sm mt-1">{errors.mobile}</p>}
+                                    </div>
+
+                                    {/* Check-in Time */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Check-in Time
+                                        </label>
+                                        <div className="relative">
+                                            <Clock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                            <input
+                                                type="time"
+                                                value={bookingData.checkInTime || '12:00'}
+                                                onChange={(e) => setCheckInTime(e.target.value)}
+                                                className="input-primary pl-10"
+                                            />
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-1">Standard check-in time is 12:00 PM</p>
                                     </div>
 
                                     {/* Email */}
@@ -473,7 +494,7 @@ const Booking = () => {
                                 <button
                                     onClick={handleConfirmBooking}
                                     disabled={isSubmitting || paymentLoading}
-                                    className={`w-full btn-primary mt-8 py-4 text-lg ${isSubmitting || paymentLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                    className={`w-full btn-primary mt-6 sm:mt-8 py-3 sm:py-4 text-base sm:text-lg ${isSubmitting || paymentLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
                                 >
                                     {isSubmitting || paymentLoading ? 'Processing...' : `Confirm Booking • ₹${totalPrice}`}
                                 </button>
@@ -483,7 +504,7 @@ const Booking = () => {
 
                     {/* Order Summary Sidebar */}
                     <div className="lg:col-span-1">
-                        <div className="bg-white rounded-2xl p-6 shadow-soft sticky top-40">
+                        <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-soft sticky top-40">
                             <h3 className="font-bold text-gray-900 mb-4">Booking Summary</h3>
 
                             {/* Lodge Info */}

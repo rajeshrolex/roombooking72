@@ -117,7 +117,7 @@ const LodgeList = () => {
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Header Section */}
-            <div className="bg-white shadow-sm sticky top-16 md:top-20 z-40">
+            <div className="bg-white shadow-sm sticky top-14 sm:top-16 md:top-20 z-40">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
                     {/* Search Bar - Compact */}
                     <div className="mb-4">

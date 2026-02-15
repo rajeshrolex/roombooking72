@@ -214,7 +214,97 @@ const BookingsList = () => {
                     </div>
                 </div>
 
-                <div className="overflow-x-auto">
+                {/* Mobile Card View */}
+                <div className="md:hidden divide-y divide-gray-100">
+                    {filteredBookings.length > 0 ? (
+                        filteredBookings.map((booking) => (
+                            <div key={booking._id} className="p-4 hover:bg-gray-50 transition-colors">
+                                <div className="flex items-start justify-between mb-2">
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-semibold text-gray-900 truncate">{booking.customerDetails?.name}</p>
+                                        <p className="text-xs text-gray-500">{booking.customerDetails?.mobile}</p>
+                                    </div>
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize flex-shrink-0 ml-2 ${getStatusColor(booking.status)}`}>
+                                        {booking.status}
+                                    </span>
+                                </div>
+
+                                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                    <span className="text-xs text-indigo-600 font-mono bg-indigo-50 px-2 py-0.5 rounded">{booking.bookingId}</span>
+                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${booking.paymentMethod === 'upi' || booking.paymentMethod === 'online'
+                                        ? 'bg-blue-100 text-blue-700'
+                                        : 'bg-orange-100 text-orange-700'
+                                        }`}>
+                                        {booking.paymentMethod === 'upi' || booking.paymentMethod === 'online' ? (
+                                            <><CreditCard size={10} /> Online</>
+                                        ) : (
+                                            <><Banknote size={10} /> Cash</>
+                                        )}
+                                    </span>
+                                    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${booking.paymentStatus === 'paid'
+                                        ? 'bg-green-100 text-green-700'
+                                        : 'bg-yellow-100 text-yellow-700'
+                                        }`}>
+                                        {booking.paymentStatus === 'paid' ? '✓ Paid' : '⏳ Pending'}
+                                    </span>
+                                </div>
+
+                                <div className="flex items-center justify-between text-sm">
+                                    <div className="text-gray-600">
+                                        <span>{booking.checkIn ? format(new Date(booking.checkIn), 'dd MMM') : 'N/A'}</span>
+                                        <span className="mx-1">→</span>
+                                        <span>{booking.checkOut ? format(new Date(booking.checkOut), 'dd MMM') : 'N/A'}</span>
+                                    </div>
+                                    <span className="font-bold text-gray-900">₹{booking.totalAmount?.toLocaleString() || 0}</span>
+                                </div>
+
+                                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+                                    <button
+                                        onClick={() => setSelectedBooking(booking)}
+                                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
+                                    >
+                                        <Eye size={14} /> View
+                                    </button>
+                                    {booking.paymentStatus !== 'paid' && (
+                                        <button
+                                            onClick={() => handlePaymentUpdate(booking, 'paid')}
+                                            disabled={updatingPayment === booking._id}
+                                            className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm text-green-600 bg-green-50 rounded-lg hover:bg-green-100 transition-colors disabled:opacity-50"
+                                        >
+                                            {updatingPayment === booking._id ? (
+                                                <Loader2 size={14} className="animate-spin" />
+                                            ) : (
+                                                <><Banknote size={14} /> Mark Paid</>
+                                            )}
+                                        </button>
+                                    )}
+                                    {getNextActions(booking.status).map((action) => (
+                                        <button
+                                            key={action.status}
+                                            onClick={() => handleStatusUpdate(booking._id, action.status)}
+                                            disabled={updatingStatus === booking._id}
+                                            className={`flex items-center justify-center gap-1 px-3 py-2 text-sm rounded-lg transition-colors disabled:opacity-50 ${action.color}`}
+                                            title={action.label}
+                                        >
+                                            {updatingStatus === booking._id ? (
+                                                <Loader2 size={14} className="animate-spin" />
+                                            ) : (
+                                                <action.icon size={14} />
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="text-center py-12 px-4">
+                            <p className="text-gray-500">No bookings found</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left">
                         <thead className="bg-gray-50 text-gray-600 font-medium text-sm">
                             <tr>
@@ -244,6 +334,12 @@ const BookingsList = () => {
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-600">
                                             <div>{booking.checkIn ? format(new Date(booking.checkIn), 'MMM dd, yyyy') : 'N/A'}</div>
+                                            {booking.checkInTime && (
+                                                <div className="text-xs text-primary-600 flex items-center gap-1">
+                                                    <Clock size={12} />
+                                                    {booking.checkInTime}
+                                                </div>
+                                            )}
                                             <div className="text-xs text-gray-400">
                                                 to {booking.checkOut ? format(new Date(booking.checkOut), 'MMM dd, yyyy') : 'N/A'}
                                             </div>
@@ -254,12 +350,12 @@ const BookingsList = () => {
                                         <td className="px-6 py-4">
                                             <div className="flex flex-col gap-1">
                                                 {/* Payment Method */}
-                                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${booking.paymentMethod === 'upi'
+                                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${booking.paymentMethod === 'upi' || booking.paymentMethod === 'online'
                                                     ? 'bg-blue-100 text-blue-700'
                                                     : 'bg-orange-100 text-orange-700'
                                                     }`}>
-                                                    {booking.paymentMethod === 'upi' ? (
-                                                        <><CreditCard size={12} /> UPI</>
+                                                    {booking.paymentMethod === 'upi' || booking.paymentMethod === 'online' ? (
+                                                        <><CreditCard size={12} /> Online</>
                                                     ) : (
                                                         <><Banknote size={12} /> Cash</>
                                                     )}
@@ -400,6 +496,12 @@ const BookingsList = () => {
                                         <p className="font-medium">
                                             {selectedBooking.checkIn ? format(new Date(selectedBooking.checkIn), 'MMM dd, yyyy') : 'N/A'}
                                         </p>
+                                        {selectedBooking.checkInTime && (
+                                            <p className="text-xs text-primary-600 flex items-center gap-1">
+                                                <Clock size={12} />
+                                                {selectedBooking.checkInTime}
+                                            </p>
+                                        )}
                                     </div>
                                     <div>
                                         <p className="text-gray-500">Check Out</p>
@@ -433,12 +535,12 @@ const BookingsList = () => {
                                 <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                                     <div>
                                         <p className="text-green-700">Payment Method</p>
-                                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm font-medium ${selectedBooking.paymentMethod === 'upi'
+                                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm font-medium ${selectedBooking.paymentMethod === 'upi' || selectedBooking.paymentMethod === 'online'
                                             ? 'bg-blue-100 text-blue-700'
                                             : 'bg-orange-100 text-orange-700'
                                             }`}>
-                                            {selectedBooking.paymentMethod === 'upi' ? (
-                                                <><CreditCard size={14} /> UPI Payment</>
+                                            {selectedBooking.paymentMethod === 'upi' || selectedBooking.paymentMethod === 'online' ? (
+                                                <><CreditCard size={14} /> Online Payment</>
                                             ) : (
                                                 <><Banknote size={14} /> Pay at Lodge (Cash)</>
                                             )}
@@ -446,12 +548,17 @@ const BookingsList = () => {
                                     </div>
                                     <div>
                                         <p className="text-green-700">Payment Status</p>
-                                        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${selectedBooking.paymentStatus === 'paid'
-                                            ? 'bg-green-200 text-green-800'
-                                            : 'bg-yellow-200 text-yellow-800'
-                                            }`}>
-                                            {selectedBooking.paymentStatus || 'Pending'}
-                                        </span>
+                                        {(() => {
+                                            const hasBal = selectedBooking.balanceAmount > 0;
+                                            const isPaid = selectedBooking.paymentStatus === 'paid';
+                                            if (isPaid && !hasBal) {
+                                                return <span className="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-green-200 text-green-800">✅ Fully Paid</span>;
+                                            } else if (isPaid && hasBal) {
+                                                return <span className="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-blue-200 text-blue-800">💳 Partially Paid</span>;
+                                            } else {
+                                                return <span className="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-yellow-200 text-yellow-800">⏳ Pending</span>;
+                                            }
+                                        })()}
                                     </div>
                                     {selectedBooking.paymentId && (
                                         <div className="col-span-2">
@@ -462,12 +569,37 @@ const BookingsList = () => {
                                         </div>
                                     )}
                                 </div>
-                                <div className="flex justify-between items-center pt-3 border-t border-green-200">
-                                    <span className="font-semibold text-green-800">Total Amount</span>
-                                    <span className="text-2xl font-bold text-green-700">
-                                        ₹{selectedBooking.totalAmount?.toLocaleString() || 0}
-                                    </span>
+
+                                {/* Amount Breakdown */}
+                                <div className="space-y-2 pt-3 border-t border-green-200">
+                                    {selectedBooking.amountPaid > 0 && (
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-green-700">Paid Online</span>
+                                            <span className="font-semibold text-green-700">₹{selectedBooking.amountPaid?.toLocaleString()} ✅</span>
+                                        </div>
+                                    )}
+                                    {selectedBooking.balanceAmount > 0 && (
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-red-600">Balance Due</span>
+                                            <span className="font-semibold text-red-600">₹{selectedBooking.balanceAmount?.toLocaleString()} 💰</span>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between items-center pt-2">
+                                        <span className="font-semibold text-green-800">Total Amount</span>
+                                        <span className="text-2xl font-bold text-green-700">
+                                            ₹{selectedBooking.totalAmount?.toLocaleString() || 0}
+                                        </span>
+                                    </div>
                                 </div>
+
+                                {/* Balance Warning */}
+                                {selectedBooking.balanceAmount > 0 && (
+                                    <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                                        <p className="text-xs text-amber-800 font-medium">
+                                            💰 Balance of <strong>₹{selectedBooking.balanceAmount?.toLocaleString()}</strong> to be collected at lodge during check-in.
+                                        </p>
+                                    </div>
+                                )}
 
                                 {/* Payment Action Button */}
                                 {selectedBooking.paymentStatus !== 'paid' && (

@@ -115,7 +115,7 @@ const sendGuestConfirmation = async (bookingDetails) => {
                                 </tr>
                                 <tr>
                                     <td style="padding: 8px 0; color: #6b7280;">Check-in:</td>
-                                    <td style="padding: 8px 0; font-weight: bold; color: #1f2937;">${bookingDetails.checkIn}</td>
+                                    <td style="padding: 8px 0; font-weight: bold; color: #1f2937;">${bookingDetails.checkIn} at ${bookingDetails.checkInTime || '12:00'}</td>
                                 </tr>
                                 <tr>
                                     <td style="padding: 8px 0; color: #6b7280;">Check-out:</td>
@@ -169,6 +169,7 @@ const sendAdminNotification = async (bookingDetails) => {
         const amountPaid = bookingDetails.amountPaid || 0;
         const balanceAmount = bookingDetails.balanceAmount || 0;
         const isFullyPaid = amountPaid === totalAmount && balanceAmount === 0;
+        const isPayAtLodge = amountPaid === 0 && balanceAmount === totalAmount;
 
         // Payment status section based on payment breakdown
         let paymentStatusHtml = `
@@ -248,7 +249,7 @@ const sendAdminNotification = async (bookingDetails) => {
                             </tr>
                             <tr>
                                 <td style="padding: 8px 0; color: #6b7280;">Check-in:</td>
-                                <td style="padding: 8px 0; font-weight: bold; color: #1f2937;">${bookingDetails.checkIn}</td>
+                                <td style="padding: 8px 0; font-weight: bold; color: #1f2937;">${bookingDetails.checkIn} at ${bookingDetails.checkInTime || '12:00'}</td>
                             </tr>
                             <tr>
                                 <td style="padding: 8px 0; color: #6b7280;">Check-out:</td>

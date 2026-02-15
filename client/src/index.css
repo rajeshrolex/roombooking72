@@ -226,6 +226,55 @@ body {
     font-size: 16px !important;
     /* Prevent iOS zoom */
   }
+
+  /* Prevent horizontal overflow */
+  body,
+  #root {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* Better spacing for containers */
+  .max-w-7xl,
+  .max-w-4xl,
+  .max-w-2xl {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  /* Smaller font for long text */
+  .font-mono {
+    font-size: 11px !important;
+    word-break: break-all;
+  }
+
+  /* Better modals on mobile */
+  .fixed.inset-0 .max-w-2xl,
+  .fixed.inset-0 .max-w-3xl,
+  .fixed.inset-0 .max-w-4xl {
+    margin: 8px;
+    max-height: calc(100vh - 16px);
+  }
+}
+
+/* Small phone fixes (< 375px) */
+@media (max-width: 375px) {
+  .section-title {
+    font-size: 1.125rem !important;
+  }
+
+  .text-2xl {
+    font-size: 1.25rem !important;
+  }
+
+  .text-3xl {
+    font-size: 1.5rem !important;
+  }
+
+  .px-6 {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
 }
 
 /* Smooth animations for mobile */

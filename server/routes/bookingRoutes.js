@@ -125,8 +125,12 @@ router.post('/', async (req, res) => {
         let amountPaid = 0;
         let balanceAmount = totalAmount;
 
-        if (paymentStatus === 'paid') {
-            // If payment is successful, full amount is paid
+        // If client provides explicit amountPaid/balanceAmount (partial payment), use those
+        if (req.body.amountPaid !== undefined && req.body.amountPaid !== null) {
+            amountPaid = Number(req.body.amountPaid);
+            balanceAmount = Number(req.body.balanceAmount) || (totalAmount - amountPaid);
+        } else if (paymentStatus === 'paid') {
+            // Full payment (no explicit amounts provided)
             amountPaid = totalAmount;
             balanceAmount = 0;
         } else if (paymentMethod === 'payAtLodge') {
@@ -146,6 +150,7 @@ router.post('/', async (req, res) => {
             roomPrice: req.body.room?.price,
             checkIn: req.body.checkIn,
             checkOut: req.body.checkOut,
+            checkInTime: req.body.checkInTime || '12:00',
             guests: req.body.guests,
             rooms: req.body.rooms,
             customerName: req.body.customerDetails?.name,
@@ -192,6 +197,7 @@ router.post('/', async (req, res) => {
                 phone: req.body.customerDetails?.mobile,
                 checkIn: formatDate(req.body.checkIn),
                 checkOut: formatDate(req.body.checkOut),
+                checkInTime: req.body.checkInTime || '12:00',
                 guests: req.body.guests || 1,
                 amount: totalAmount,
                 amountPaid: amountPaid,

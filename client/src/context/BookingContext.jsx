@@ -15,6 +15,7 @@ export const BookingProvider = ({ children }) => {
     const [bookingData, setBookingData] = useState({
         checkIn: null,
         checkOut: null,
+        checkInTime: '12:00',
         guests: 1,
         rooms: 1,
         selectedLodge: null,
@@ -28,7 +29,9 @@ export const BookingProvider = ({ children }) => {
         },
         paymentMethod: 'payAtLodge',
         bookingId: null,
-        status: 'pending'
+        status: 'pending',
+        amountPaid: null,
+        balanceAmount: null
     });
 
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -47,6 +50,10 @@ export const BookingProvider = ({ children }) => {
 
     const setRooms = (rooms) => {
         setBookingData(prev => ({ ...prev, rooms }));
+    };
+
+    const setCheckInTime = (time) => {
+        setBookingData(prev => ({ ...prev, checkInTime: time }));
     };
 
     const selectLodge = (lodge) => {
@@ -78,7 +85,12 @@ export const BookingProvider = ({ children }) => {
     const calculateTotalPrice = () => {
         if (!bookingData.selectedRoom) return 0;
         const nights = calculateTotalNights();
-        return bookingData.selectedRoom.price * nights * bookingData.rooms;
+        const room = bookingData.selectedRoom;
+        const baseGuests = room.baseGuests || room.maxOccupancy || 1;
+        const extraGuestPrice = room.extraGuestPrice || 0;
+        const extraGuests = Math.max(0, (bookingData.guests || 1) - baseGuests);
+        const perNightPrice = room.price + (extraGuests * extraGuestPrice);
+        return perNightPrice * nights * bookingData.rooms;
     };
 
     // Submit booking to API
@@ -112,12 +124,16 @@ export const BookingProvider = ({ children }) => {
                 },
                 checkIn: bookingData.checkIn || new Date(),
                 checkOut: bookingData.checkOut || new Date(Date.now() + 86400000),
+                checkInTime: bookingData.checkInTime || '12:00',
                 guests: bookingData.guests,
                 rooms: bookingData.rooms,
                 customerDetails: bookingData.customerDetails,
                 paymentMethod: normalizedPaymentMethod, // Use normalized value
                 totalAmount: calculateTotalPrice() || bookingData.selectedRoom?.price * totalNights,
                 paymentDetails: paymentDetails,
+                // Pass amountPaid and balanceAmount from payment details for partial payments
+                amountPaid: paymentDetails?.amountPaid,
+                balanceAmount: paymentDetails?.balanceAmount,
                 // Explicitly set payment status at top level for clarity
                 paymentStatus: paymentStatus
             };
@@ -132,7 +148,9 @@ export const BookingProvider = ({ children }) => {
                 setBookingData(prev => ({
                     ...prev,
                     bookingId: result.bookingId,
-                    status: 'confirmed'
+                    status: 'confirmed',
+                    amountPaid: result.amountPaid ?? paymentDetails?.amountPaid ?? null,
+                    balanceAmount: result.balanceAmount ?? paymentDetails?.balanceAmount ?? null
                 }));
                 return result;
             }
@@ -156,6 +174,7 @@ export const BookingProvider = ({ children }) => {
         setBookingData({
             checkIn: null,
             checkOut: null,
+            checkInTime: '12:00',
             guests: 1,
             rooms: 1,
             selectedLodge: null,
@@ -169,7 +188,9 @@ export const BookingProvider = ({ children }) => {
             },
             paymentMethod: 'payAtLodge',
             bookingId: null,
-            status: 'pending'
+            status: 'pending',
+            amountPaid: null,
+            balanceAmount: null
         });
     };
 
@@ -180,6 +201,7 @@ export const BookingProvider = ({ children }) => {
         setDates,
         setGuests,
         setRooms,
+        setCheckInTime,
         selectLodge,
         selectRoom,
         setCustomerDetails,

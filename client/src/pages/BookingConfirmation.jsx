@@ -11,7 +11,8 @@ import {
     Download,
     Share2,
     Home,
-    Navigation
+    Navigation,
+    Clock
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useBooking } from '../context/BookingContext';
@@ -40,10 +41,13 @@ const BookingConfirmation = () => {
         selectedRoom,
         checkIn,
         checkOut,
+        checkInTime,
         guests,
         customerDetails,
         paymentMethod,
-        bookingId
+        bookingId,
+        amountPaid,
+        balanceAmount
     } = bookingData;
 
     const totalNights = checkIn && checkOut
@@ -56,14 +60,21 @@ const BookingConfirmation = () => {
     const perNightPrice = selectedRoom.price + extraGuests * extraGuestPrice;
     const totalPrice = perNightPrice * totalNights;
 
+    // Determine payment info
+    const paidAmount = amountPaid ?? (paymentMethod !== 'payAtLodge' ? totalPrice : 0);
+    const balanceDue = balanceAmount ?? (paymentMethod === 'payAtLodge' ? totalPrice : 0);
+    const isFullyPaid = paidAmount >= totalPrice;
+    const isPayAtLodge = paymentMethod === 'payAtLodge';
+
     const getWhatsAppShareUrl = () => {
         const message = `🙏 Booking Confirmed!\n\n` +
             `📋 Booking ID: ${bookingId}\n` +
             `🏨 ${selectedLodge.name}\n` +
             `🛏️ ${selectedRoom.name}\n` +
             `📅 ${checkIn ? format(new Date(checkIn), 'dd MMM yyyy') : 'Today'} - ${checkOut ? format(new Date(checkOut), 'dd MMM yyyy') : 'Tomorrow'}\n` +
-            `💰 Total: ₹${totalPrice}\n\n` +
-            `📍 Location: Near Sri Raghavendra Swamy Mutt, Mantralayam`;
+            `💰 Total: ₹${totalPrice}` +
+            (paidAmount > 0 && balanceDue > 0 ? ` (Paid: ₹${paidAmount}, Balance: ₹${balanceDue})` : '') +
+            `\n\n📍 Location: Near Sri Raghavendra Swamy Mutt, Mantralayam`;
 
         return `https://wa.me/?text=${encodeURIComponent(message)}`;
     };
@@ -73,7 +84,7 @@ const BookingConfirmation = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-primary-50 to-orange-50 py-8 px-4">
+        <div className="min-h-screen bg-gradient-to-br from-primary-50 to-orange-50 py-6 sm:py-8 px-3 sm:px-4">
             <div className="max-w-2xl mx-auto">
                 {/* Success Animation */}
                 <motion.div
@@ -82,14 +93,15 @@ const BookingConfirmation = () => {
                     transition={{ type: 'spring', stiffness: 200, damping: 15 }}
                     className="text-center mb-8"
                 >
-                    <div className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                        <CheckCircle size={48} className="text-white" />
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                        <CheckCircle size={40} className="text-white sm:hidden" />
+                        <CheckCircle size={48} className="text-white hidden sm:block" />
                     </div>
                     <motion.h1
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.3 }}
-                        className="text-3xl font-bold text-gray-900 mb-2"
+                        className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2"
                     >
                         Booking Confirmed! 🎉
                     </motion.h1>
@@ -111,10 +123,10 @@ const BookingConfirmation = () => {
                     className="bg-white rounded-3xl shadow-elevated overflow-hidden"
                 >
                     {/* Header */}
-                    <div className="bg-gradient-to-r from-primary-500 to-primary-600 p-6 text-white">
+                    <div className="bg-gradient-to-r from-primary-500 to-primary-600 p-4 sm:p-6 text-white">
                         <div className="flex items-center justify-between mb-4">
                             <span className="text-sm opacity-90">Booking ID</span>
-                            <span className="font-mono font-bold text-lg">{bookingId}</span>
+                            <span className="font-mono font-bold text-sm sm:text-lg break-all">{bookingId}</span>
                         </div>
                         <div className="flex items-center gap-4">
                             <img
@@ -123,14 +135,14 @@ const BookingConfirmation = () => {
                                 className="w-16 h-16 rounded-xl object-cover"
                             />
                             <div>
-                                <h2 className="font-bold text-xl">{selectedLodge.name}</h2>
+                                <h2 className="font-bold text-lg sm:text-xl">{selectedLodge.name}</h2>
                                 <p className="text-white/80">{selectedRoom.name}</p>
                             </div>
                         </div>
                     </div>
 
                     {/* Details */}
-                    <div className="p-6 space-y-4">
+                    <div className="p-4 sm:p-6 space-y-4">
                         {/* Guest Info */}
                         <div className="flex items-center justify-between py-3 border-b border-gray-100">
                             <span className="text-gray-600">Guest Name</span>
@@ -151,6 +163,10 @@ const BookingConfirmation = () => {
                                     <p className="text-xs text-gray-500">Check-in</p>
                                     <p className="font-medium text-gray-900">
                                         {checkIn ? format(new Date(checkIn), 'dd MMM yyyy') : 'Today'}
+                                    </p>
+                                    <p className="text-xs text-primary-600 flex items-center gap-1">
+                                        <Clock size={12} />
+                                        {checkInTime || '12:00'}
                                     </p>
                                 </div>
                             </div>
@@ -176,19 +192,52 @@ const BookingConfirmation = () => {
                             <span className="font-medium text-gray-900">{guests || 1} Guest(s)</span>
                         </div>
 
-                        {/* Payment */}
-                        <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                            <span className="text-gray-600">Payment Method</span>
-                            <span className="font-medium text-gray-900">
-                                {paymentMethod === 'payAtLodge' ? 'Pay at Lodge' : 'UPI Payment'}
-                            </span>
+                        {/* Payment Breakdown */}
+                        <div className="py-3 border-b border-gray-100 space-y-2">
+                            <div className="flex items-center justify-between">
+                                <span className="text-gray-600">Payment Method</span>
+                                <span className="font-medium text-gray-900">
+                                    {isPayAtLodge ? 'Pay at Lodge' : 'UPI Payment'}
+                                </span>
+                            </div>
+
+                            {paidAmount > 0 && (
+                                <div className="flex items-center justify-between">
+                                    <span className="text-gray-600">Paid Online</span>
+                                    <span className="font-semibold text-green-600">₹{paidAmount} ✅</span>
+                                </div>
+                            )}
+
+                            {balanceDue > 0 && (
+                                <div className="flex items-center justify-between">
+                                    <span className="text-gray-600">Balance Due at Lodge</span>
+                                    <span className="font-semibold text-red-500">₹{balanceDue} 💰</span>
+                                </div>
+                            )}
                         </div>
 
                         {/* Total */}
                         <div className="flex items-center justify-between py-4 bg-primary-50 rounded-xl px-4 -mx-2">
                             <span className="font-bold text-gray-900">Total Amount</span>
-                            <span className="text-2xl font-bold text-primary-600">₹{totalPrice}</span>
+                            <div className="text-right">
+                                <span className="text-2xl font-bold text-primary-600">₹{totalPrice}</span>
+                                {isFullyPaid && !isPayAtLodge && (
+                                    <p className="text-xs text-green-600 font-medium">✅ Fully Paid</p>
+                                )}
+                                {balanceDue > 0 && (
+                                    <p className="text-xs text-orange-600 font-medium">⏳ ₹{balanceDue} due at check-in</p>
+                                )}
+                            </div>
                         </div>
+
+                        {/* Balance Warning */}
+                        {balanceDue > 0 && (
+                            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                                <p className="text-sm text-amber-800 font-medium">
+                                    💰 Please pay remaining <strong>₹{balanceDue}</strong> via Cash or UPI at the lodge during check-in.
+                                </p>
+                            </div>
+                        )}
 
                         {/* Location */}
                         <div className="pt-4">
@@ -209,8 +258,8 @@ const BookingConfirmation = () => {
                     </div>
 
                     {/* Actions */}
-                    <div className="p-6 bg-gray-50 space-y-3">
-                        <div className="grid grid-cols-2 gap-3">
+                    <div className="p-4 sm:p-6 bg-gray-50 space-y-3">
+                        <div className="grid grid-cols-2 gap-2 sm:gap-3">
                             <a
                                 href={`tel:${selectedLodge.phone}`}
                                 className="btn-call py-3 justify-center"
